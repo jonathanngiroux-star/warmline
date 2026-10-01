@@ -9,9 +9,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/jonathanngiroux-star/warmline/internal/mta"
 	"github.com/jonathanngiroux-star/warmline/internal/queue"
+	"github.com/jonathanngiroux-star/warmline/internal/relay"
 	"github.com/jonathanngiroux-star/warmline/internal/store"
 	"github.com/jonathanngiroux-star/warmline/internal/webhooks"
 )
@@ -65,8 +67,10 @@ func (h storeHandler) Submit(m mta.Message) error {
 
 // Options configures Serve.
 type Options struct {
-	SMTPAddr string // e.g. "127.0.0.1:2525"
-	HTTPAddr string // e.g. "127.0.0.1:8080"
+	SMTPAddr  string        // e.g. "127.0.0.1:2525"
+	HTTPAddr  string        // e.g. "127.0.0.1:8080"
+	Relay     relay.Config  // optional user-supplied outbound relay; zero = no outbound
+	RelayTick time.Duration // drain interval when Relay is set (default 5s)
 }
 
 // Run starts the SMTP front and the HTTP UI and blocks. Both listeners
@@ -79,6 +83,29 @@ func Run(db *store.Store, opts Options) error {
 		return fmt.Errorf("smtp listen %s: %w", opts.SMTPAddr, err)
 	}
 	go smtp.Serve()
+
+	// Optional outbound drain into the USER-SUPPLIED relay. Warmline
+	// never operates relays; zero Addr = local queue only.
+	if opts.Relay.Addr != "" {
+		if err := opts.Relay.Validate(); err != nil {
+			return fmt.Errorf("relay config: %w", err)
+		}
+		tick := opts.RelayTick
+		if tick == 0 {
+			tick = 5 * time.Second
+		}
+		r := relay.New(opts.Relay)
+		go func() {
+			for range time.Tick(tick) {
+				for {
+					n, err := r.WorkOnce(db)
+					if err != nil || n == 0 {
+						break
+					}
+				}
+			}
+		}()
+	}
 
 	// HTTP UI
 	mux := http.NewServeMux()

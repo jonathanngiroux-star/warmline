@@ -157,6 +157,13 @@ func (s *Store) Dequeue() (*Message, error) {
 	return &msg, nil
 }
 
+// Requeue returns a claimed (processing) message to the queue for
+// retry. Also safe on already-queued rows (idempotent).
+func (s *Store) Requeue(id int64) error {
+	_, err := s.db.Exec(`UPDATE messages SET status='queued' WHERE id=? AND status='processing'`, id)
+	return err
+}
+
 // MarkSent finalizes a claimed message with the relay that accepted it.
 func (s *Store) MarkSent(id int64, relay string) error {
 	_, err := s.db.Exec(

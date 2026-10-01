@@ -36,4 +36,4 @@ JSON output (default `--format=text` prints the same data human-readable):
 
 ## CI gate
 
-The committed fixture (`testdata/fixtures/sendgrid/sample-export.json`) must produce a machine-stable report: same input → same keys, same lengths, same order. CI fails if the mapping table regresses (e.g. an event silently becomes mapped or unmapped without the test contract being consciously updated).
+The committed fixtures (`testdata/fixtures/{sendgrid,postmark}/sample-export.json`) must produce machine-stable reports: same input → same keys, same lengths, same order. CI fails if a mapping changes without the contract being consciously updated. The webhook event mapping is shared between this report and the live normalizer — one table, no drift.

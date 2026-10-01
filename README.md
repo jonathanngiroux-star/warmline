@@ -19,9 +19,9 @@ Pre-release, under active development. All of the following is working today, co
 - `warmline migrate --from=sendgrid|postmark --dry-run` (+ `--format=json`) with machine-stable reports
 - `warmline simulate --plan plan.json` — deterministic reputation trajectory (JSON or markdown), golden-fixture gated
 - `warmline dkim generate|rotate` — RSA-2048/Ed25519 keygen + rotation checklists
-- `warmline serve` — local SMTP submission → SQLite queue → HTTP UI (`/` queue stats, `/donate`, `/hooks/sendgrid` webhook ingest)
+- `warmline serve` — local SMTP submission → SQLite queue → HTTP UI (`/` queue stats, `/donate`, `/hooks/sendgrid` webhook ingest), optional outbound drain into a relay **you** supply (`--relay`, see [docs/relay.md](docs/relay.md))
 
-Not in v0.1 scope: outbound delivery (relay wiring), Postmark/Mailgun webhook normalization, Mailgun migrate.
+Not in v0.1 scope: Postmark/Mailgun webhook normalization, Mailgun migrate. (Outbound delivery exists via user-supplied relay — it is your relay, your keys; Warmline operates none.)
 
 ## Quick start (from source)
 
@@ -63,7 +63,8 @@ Choice made in week 1 and stuck to: **zoneMTA** behind a thin Go wrapper. zoneMT
 - [docs/donate.md](docs/donate.md) — donation addresses (ETH/USDC, BTC)
 - [docs/migrate.md](docs/migrate.md) — dry-run reports and the diff schema
 - [docs/simulate.md](docs/simulate.md) — reputation simulation (planned)
-- [docs/webhooks.md](docs/webhooks.md) — canonical event mapping (planned)
+- [docs/webhooks.md](docs/webhooks.md) — canonical event mapping
+- [docs/relay.md](docs/relay.md) — outbound relay configuration (bring your own)
 
 ## License
 

@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/jonathanngiroux-star/warmline/internal/relay"
 	"github.com/jonathanngiroux-star/warmline/internal/serve"
 	"github.com/jonathanngiroux-star/warmline/internal/store"
 )
@@ -25,6 +26,10 @@ func cmdServe(args []string, stdout, stderr io.Writer) int {
 	dbPath := fs.String("db", envDefault("WARMLINE_DB", "warmline.db"), "path to the SQLite queue database")
 	smtpAddr := fs.String("smtp", envDefault("WARMLINE_SMTP", "127.0.0.1:2525"), "SMTP submission listen address")
 	httpAddr := fs.String("http", envDefault("WARMLINE_HTTP", "127.0.0.1:8080"), "HTTP UI listen address")
+	relayAddr := fs.String("relay", envDefault("WARMLINE_RELAY", ""), "optional outbound relay host:port YOU operate or rent (e.g. smtp.yourprovider.com:587)")
+	relayUser := fs.String("relay-user", envDefault("WARMLINE_RELAY_USER", ""), "relay username (optional)")
+	relayPass := fs.String("relay-pass", envDefault("WARMLINE_RELAY_PASS", ""), "relay password (optional; prefer env var)")
+	relayFrom := fs.String("relay-from", envDefault("WARMLINE_RELAY_FROM", ""), "envelope-from override (optional)")
 	if err := fs.Parse(args); err != nil {
 		return 2
 	}
@@ -41,6 +46,11 @@ func cmdServe(args []string, stdout, stderr io.Writer) int {
 	fmt.Fprintf(stdout, "  http ui:         http://%s/\n", *httpAddr)
 	fmt.Fprintf(stdout, "  queue db:        %s\n", *dbPath)
 	fmt.Fprintf(stdout, "  donate:          http://%s/donate\n", *httpAddr)
+	if *relayAddr != "" {
+		fmt.Fprintf(stdout, "  outbound relay:   %s (user-supplied)\n", *relayAddr)
+	} else {
+		fmt.Fprintf(stdout, "  outbound relay:   none (queue holds mail until you configure --relay)\n")
+	}
 	fmt.Fprintf(stdout, "Outbound delivery is user-supplied-relay only — Warmline does not send mail itself.\n")
 
 	// Ctrl-C -> clean shutdown.
@@ -53,7 +63,11 @@ func cmdServe(args []string, stdout, stderr io.Writer) int {
 		os.Exit(0)
 	}()
 
-	if err := serve.Run(db, serve.Options{SMTPAddr: *smtpAddr, HTTPAddr: *httpAddr}); err != nil {
+	opts := serve.Options{SMTPAddr: *smtpAddr, HTTPAddr: *httpAddr}
+	if *relayAddr != "" {
+		opts.Relay = relay.Config{Addr: *relayAddr, Username: *relayUser, Password: *relayPass, From: *relayFrom}
+	}
+	if err := serve.Run(db, opts); err != nil {
 		fmt.Fprintf(stderr, "serve: %v\n", err)
 		return 1
 	}

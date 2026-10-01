@@ -224,3 +224,28 @@ func TestDBAccessor(t *testing.T) {
 		t.Fatalf("DB() not queryable: %v", err)
 	}
 }
+
+func TestRequeue(t *testing.T) {
+	db := openTestDB(t)
+	id, err := db.Enqueue("a@example.net", "x", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Dequeue(); err != nil { // claims -> processing
+		t.Fatal(err)
+	}
+	if err := db.Requeue(id); err != nil {
+		t.Fatalf("requeue: %v", err)
+	}
+	msg, err := db.Dequeue()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if msg == nil || msg.ID != id {
+		t.Fatalf("requeued message not claimable: %+v", msg)
+	}
+	// Requeue is idempotent-safe on an already-queued row (no error).
+	if err := db.Requeue(id); err != nil {
+		t.Errorf("requeue on queued row errored: %v", err)
+	}
+}
