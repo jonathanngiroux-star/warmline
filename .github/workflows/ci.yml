@@ -1,0 +1,32 @@
+name: ci
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: "1.27"
+      - name: gofmt
+        run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
+      - name: vet
+        run: go vet ./...
+      - name: test
+        run: go test ./...
+      - name: build
+        run: go build -o warmline ./cmd/warmline
+      # Fidelity gate: the migrate dry-run on the committed SendGrid
+      # fixture must stay machine-stable — same input, same report keys.
+      - name: migrate fixture gate (sendgrid)
+        run: |
+          ./warmline migrate --from=sendgrid --dry-run --format=json \
+            --input testdata/fixtures/sendgrid/sample-export.json > /tmp/report.json
+          jq -e '.source=="sendgrid" and .dry_run==true
+                 and (.added | length)==1
+                 and (.unmapped | map(.key))==["webhook.event.dropped","webhook.event.group_resubscribe"]
+                 and (.risks | map(.key))==["ip_pools","suppression","templates.legacy","webhook.oauth"]
+                 and .reputation_sim.status=="planned"' /tmp/report.json

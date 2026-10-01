@@ -1,0 +1,11 @@
+.git
+dist
+*.db
+*.db-wal
+*.db-shm
+testdata
+docs
+IDEA.md
+AGENTS.md
+GOVERNANCE.md
+.github

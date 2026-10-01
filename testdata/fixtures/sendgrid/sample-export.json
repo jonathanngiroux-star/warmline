@@ -1,0 +1,228 @@
+{
+  "account": {
+    "id": "1234567",
+    "subuser_count": 2
+  },
+  "asm_groups": [
+    {
+      "id": 101,
+      "is_default": false,
+      "name": "product-updates"
+    },
+    {
+      "id": 102,
+      "is_default": true,
+      "name": "billing-alerts"
+    }
+  ],
+  "authenticated_domains": [
+    {
+      "custom_dkim": true,
+      "default": true,
+      "dns_records": [
+        {
+          "data": "s1.domainkey.u1234567.wl.sendgrid.net",
+          "host": "s1._domainkey.mail.example.com",
+          "type": "CNAME",
+          "valid": true
+        },
+        {
+          "data": "s2.domainkey.u1234567.wl.sendgrid.net",
+          "host": "s2._domainkey.mail.example.com",
+          "type": "CNAME",
+          "valid": true
+        },
+        {
+          "data": "u1234567.wl.sendgrid.net",
+          "host": "em123.mail.example.com",
+          "type": "CNAME",
+          "valid": true
+        },
+        {
+          "data": "mx.sendgrid.net",
+          "host": "mail.example.com",
+          "type": "MX",
+          "valid": true
+        }
+      ],
+      "domain": "mail.example.com",
+      "id": 20402002,
+      "parent_domain": "example.com",
+      "subdomain": "mail"
+    }
+  ],
+  "event_samples": [
+    {
+      "email": "user1@example.net",
+      "event": "delivered",
+      "sg_event_id": "EVENTID1",
+      "sg_message_id": "PQAQzA5fDfKXYZxKEXL0Ug.filterdrecv-abc123-ABCDEFG-1",
+      "smtp-id": "<202609301234.user1@example.com>",
+      "timestamp": 1759305600
+    },
+    {
+      "bounce_type": "hard",
+      "email": "user2@example.net",
+      "event": "bounce",
+      "reason": "550 5.1.1 The email account that you tried to reach does not exist",
+      "sg_event_id": "EVENTID2",
+      "sg_message_id": "PQAQzA5fDfKXYZxKEXL0Ug.filterdrecv-abc123-ABCDEFG-2",
+      "smtp-id": "<202609301234.user2@example.com>",
+      "status": "5.1.1",
+      "timestamp": 1759305660,
+      "type": "bounce"
+    },
+    {
+      "attempt_num": "2",
+      "email": "user3@example.net",
+      "event": "deferred",
+      "sg_event_id": "EVENTID3",
+      "sg_message_id": "PQAQzA5fDfKXYZxKEXL0Ug.filterdrecv-abc123-ABCDEFG-3",
+      "smtp-id": "<202609301234.user3@example.com>",
+      "status": "4.2.2",
+      "timestamp": 1759305720
+    },
+    {
+      "email": "user4@example.net",
+      "event": "spam_report",
+      "sg_event_id": "EVENTID4",
+      "sg_message_id": "PQAQzA5fDfKXYZxKEXL0Ug.filterdrecv-abc123-ABCDEFG-4",
+      "smtp-id": "<202609301234.user4@example.com>",
+      "timestamp": 1759305780
+    },
+    {
+      "asm_group_id": 101,
+      "email": "user5@example.net",
+      "event": "group_unsubscribe",
+      "sg_event_id": "EVENTID5",
+      "sg_message_id": "PQAQzA5fDfKXYZxKEXL0Ug.filterdrecv-abc123-ABCDEFG-5",
+      "timestamp": 1759305840
+    }
+  ],
+  "export_version": "1.0",
+  "ip_pools": [
+    {
+      "ips": [],
+      "name": "transactional",
+      "shared": true,
+      "warmup_status": "n/a"
+    },
+    {
+      "ips": [
+        {
+          "ip": "192.0.2.10",
+          "warmup": {
+            "start_date": "2026-07-01",
+            "status": "complete"
+          }
+        }
+      ],
+      "name": "marketing",
+      "shared": false,
+      "warmup_status": "complete"
+    }
+  ],
+  "mail_settings": {
+    "bcc": {
+      "email": "",
+      "enabled": false
+    },
+    "bypass_list_management": {
+      "enabled": false
+    },
+    "footer": {
+      "enabled": false
+    },
+    "forward_spam": {
+      "email": "",
+      "enabled": false
+    },
+    "plain_content": {
+      "enabled": true
+    },
+    "spam_check": {
+      "enabled": false,
+      "post_to_url": "",
+      "threshold": 3
+    }
+  },
+  "sender_identities": [
+    {
+      "from": {
+        "email": "notices@example.com",
+        "name": "Acme Notices"
+      },
+      "nickname": "acme-notices",
+      "reply_to": {
+        "email": "support@example.com",
+        "name": ""
+      }
+    }
+  ],
+  "stats": {
+    "last_30d": {
+      "bounces": 4200,
+      "delivered": 115800,
+      "requests": 120000,
+      "spam_reports": 10
+    }
+  },
+  "subusers": [
+    {
+      "disabled": false,
+      "username": "app-mailer"
+    },
+    {
+      "disabled": false,
+      "username": "billing-mailer"
+    }
+  ],
+  "suppression": {
+    "blocks": 3,
+    "bounces": 4200,
+    "invalid": 7,
+    "spam_reports": 10
+  },
+  "templates": [
+    {
+      "generation": "dynamic",
+      "id": "d-4dbc0c1f",
+      "name": "welcome-email"
+    },
+    {
+      "generation": "legacy",
+      "id": "d-9a1e2b3c",
+      "name": "password-reset"
+    }
+  ],
+  "tracking_settings": {
+    "click": {
+      "enable_text": true,
+      "enabled": true
+    },
+    "open": {
+      "enabled": true
+    },
+    "subscription": {
+      "enabled": false
+    }
+  },
+  "webhook": {
+    "enabled": true,
+    "events": [
+      "processed",
+      "delivered",
+      "open",
+      "click",
+      "bounce",
+      "deferred",
+      "dropped",
+      "spam_report",
+      "unsubscribe",
+      "group_unsubscribe",
+      "group_resubscribe"
+    ],
+    "oauth": true,
+    "url": "https://app.example.com/hooks/sendgrid"
+  }
+}
