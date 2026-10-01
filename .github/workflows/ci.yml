@@ -84,3 +84,31 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libgl1-mesa-dev xorg-dev libwayland-dev libxkbcommon-dev
       - name: desktop build compiles (fyne tag)
         run: CGO_ENABLED=1 go build -tags fyne -o /tmp/warmline-desktop ./cmd/warmline
+
+  # The Windows desktop GUI must cross-compile on every push — the
+  # -H windowsgui ldflag keeps the PE in the GUI subsystem (no console
+  # window behind the app). Without this job the Windows build rots
+  # between releases. The released asset is built the same way.
+  desktop-windows:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: "1.27"
+      - name: install mingw-w64 (windows cross-compiler)
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends gcc-mingw-w64-x86-64
+      - name: desktop GUI cross-compiles for windows (fyne + windowsgui)
+        run: CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -tags fyne -trimpath -ldflags "-s -w -H windowsgui" -o warmline-desktop-windows-amd64.exe ./cmd/warmline
+      - name: PE subsystem is WINDOWS_GUI (no console window)
+        run: |
+          SUB=$(python3 -c "
+          data = open('warmline-desktop-windows-amd64.exe','rb').read(4096)
+          pe = int.from_bytes(data[0x3C:0x40],'little')
+          print(int.from_bytes(data[pe+24+68:pe+24+70],'little'))
+          ")
+          if [ "$SUB" = "2" ]; then echo "PE subsystem 2 (WINDOWS_GUI) - OK"; else echo "::error::PE subsystem $SUB, want 2 (windowsgui flag lost)"; exit 1; fi
+      - name: binary size sanity
+        run: |
+          SIZE=$(stat -c%s warmline-desktop-windows-amd64.exe)
+          if [ "$SIZE" -gt 10000000 ]; then echo "binary size $SIZE - OK"; else echo "::error::implausible size $SIZE"; exit 1; fi

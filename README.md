@@ -46,6 +46,13 @@ go build -tags fyne -o warmline-desktop ./cmd/warmline
 ./warmline-desktop desktop
 ```
 
+Windows (cross-compile from Linux/WSL, or download the release zip):
+
+```sh
+CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 \
+  go build -tags fyne -ldflags "-H windowsgui" -o warmline-desktop.exe ./cmd/warmline
+```
+
 The default binary stays cgo-free (runs in Docker/scratch/CI); `warmline desktop` in that build prints instructions instead of crashing. Non-interactive contexts (pipes, CI) never hang — the TUI refuses with a hint.
 
 ## Quick start (from source)
