@@ -42,7 +42,9 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return cmdDonate(rest, stdout, stderr)
 	case "migrate":
 		return cmdMigrate(rest, stdout, stderr)
-	case "simulate", "serve":
+	case "simulate":
+		return cmdSimulate(rest, stdout, stderr)
+	case "serve":
 		fmt.Fprintf(stderr, "warmline %s is not implemented yet (planned for v0.1)\n", cmd)
 		return 2
 	default:
@@ -128,8 +130,10 @@ func cmdMigrate(args []string, stdout, stderr io.Writer) int {
 	switch *from {
 	case "sendgrid":
 		return migrateSendgrid(*format, *input, stdout, stderr)
+	case "postmark":
+		return migratePostmark(*format, *input, stdout, stderr)
 	default:
-		fmt.Fprintf(stderr, "migrate: unsupported source %q (supported: sendgrid; postmark planned for v0.1)\n", *from)
+		fmt.Fprintf(stderr, "migrate: unsupported source %q (supported: sendgrid, postmark)\n", *from)
 		return 2
 	}
 }

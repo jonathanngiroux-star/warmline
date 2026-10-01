@@ -1,0 +1,141 @@
+{
+  "plan": {
+    "volume_start": 500,
+    "volume_target": 50000,
+    "ramp_days": 14,
+    "days": 21,
+    "bounce_rate": 1,
+    "complaint_rate": 0.05,
+    "ip_age": "new"
+  },
+  "days": 21,
+  "trajectory": [
+    {
+      "day": 1,
+      "volume": 500,
+      "block_risk": "high",
+      "defer_risk": "high"
+    },
+    {
+      "day": 2,
+      "volume": 4308,
+      "block_risk": "high",
+      "defer_risk": "high"
+    },
+    {
+      "day": 3,
+      "volume": 8115,
+      "block_risk": "high",
+      "defer_risk": "high"
+    },
+    {
+      "day": 4,
+      "volume": 11923,
+      "block_risk": "high",
+      "defer_risk": "high"
+    },
+    {
+      "day": 5,
+      "volume": 15731,
+      "block_risk": "high",
+      "defer_risk": "high"
+    },
+    {
+      "day": 6,
+      "volume": 19538,
+      "block_risk": "high",
+      "defer_risk": "high"
+    },
+    {
+      "day": 7,
+      "volume": 23346,
+      "block_risk": "high",
+      "defer_risk": "high"
+    },
+    {
+      "day": 8,
+      "volume": 27154,
+      "block_risk": "elevated",
+      "defer_risk": "elevated"
+    },
+    {
+      "day": 9,
+      "volume": 30962,
+      "block_risk": "elevated",
+      "defer_risk": "elevated"
+    },
+    {
+      "day": 10,
+      "volume": 34769,
+      "block_risk": "elevated",
+      "defer_risk": "elevated"
+    },
+    {
+      "day": 11,
+      "volume": 38577,
+      "block_risk": "elevated",
+      "defer_risk": "elevated"
+    },
+    {
+      "day": 12,
+      "volume": 42385,
+      "block_risk": "elevated",
+      "defer_risk": "elevated"
+    },
+    {
+      "day": 13,
+      "volume": 46192,
+      "block_risk": "elevated",
+      "defer_risk": "elevated"
+    },
+    {
+      "day": 14,
+      "volume": 50000,
+      "block_risk": "elevated",
+      "defer_risk": "elevated"
+    },
+    {
+      "day": 15,
+      "volume": 50000,
+      "block_risk": "low",
+      "defer_risk": "low"
+    },
+    {
+      "day": 16,
+      "volume": 50000,
+      "block_risk": "low",
+      "defer_risk": "low"
+    },
+    {
+      "day": 17,
+      "volume": 50000,
+      "block_risk": "low",
+      "defer_risk": "low"
+    },
+    {
+      "day": 18,
+      "volume": 50000,
+      "block_risk": "low",
+      "defer_risk": "low"
+    },
+    {
+      "day": 19,
+      "volume": 50000,
+      "block_risk": "low",
+      "defer_risk": "low"
+    },
+    {
+      "day": 20,
+      "volume": 50000,
+      "block_risk": "low",
+      "defer_risk": "low"
+    },
+    {
+      "day": 21,
+      "volume": 50000,
+      "block_risk": "low",
+      "defer_risk": "low"
+    }
+  ],
+  "disclaimer": "Simulation from declared inputs only. Not a deliverability guarantee. Warmline does not operate IP pools."
+}

@@ -1,0 +1,9 @@
+{
+  "bounce_rate": 1.0,
+  "complaint_rate": 0.05,
+  "days": 21,
+  "ip_age": "new",
+  "ramp_days": 14,
+  "volume_start": 500,
+  "volume_target": 50000
+}

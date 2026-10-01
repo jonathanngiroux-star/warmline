@@ -1,0 +1,74 @@
+{
+  "domains": [
+    {
+      "dkim": true,
+      "id": 1,
+      "name": "mail.example.com",
+      "return_path": true,
+      "verification_status": "verified"
+    },
+    {
+      "dkim": false,
+      "id": 2,
+      "name": "staging.example.com",
+      "return_path": false,
+      "verification_status": "unverified"
+    }
+  ],
+  "export_version": "1.0",
+  "message_streams": [
+    {
+      "delivery_type": "smtp",
+      "name": "outbound"
+    },
+    {
+      "delivery_type": "smtp",
+      "name": "broadcast"
+    }
+  ],
+  "senders": [
+    {
+      "email": "notices@example.com",
+      "name": "Acme Notices",
+      "reply_to": "support@example.com"
+    }
+  ],
+  "server": "us-standard",
+  "stats": {
+    "last_30d": {
+      "bounces": 4200,
+      "sent": 120000,
+      "spam_complaints": 10
+    }
+  },
+  "suppression": {
+    "bounces": 4200,
+    "spam_complaints": 10,
+    "unsubscribes": 300
+  },
+  "templates": [
+    {
+      "active": true,
+      "id": 1234567,
+      "name": "welcome-email"
+    },
+    {
+      "active": false,
+      "id": 7654321,
+      "name": "legacy-static"
+    }
+  ],
+  "webhook": {
+    "enabled": true,
+    "events": [
+      "delivery",
+      "open",
+      "click",
+      "bounce",
+      "spam_complaint",
+      "subscription_change"
+    ],
+    "message_stream": "outbound",
+    "url": "https://app.example.com/hooks/postmark"
+  }
+}
