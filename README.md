@@ -38,10 +38,13 @@ Docker:
 
 ```sh
 docker build -t warmline .
-docker run --rm warmline version
+docker run -d -p 8080:8080 -p 2525:2525 -v warmline-data:/data warmline
+# UI: http://localhost:8080  (queue stats, /donate)
 ```
 
-`serve` (local SMTP submit + queue + UI) is W5–12 work; the cold-start target is ~2 minutes, hard cap 15. The SQLite file is the only state.
+Measured cold start: **0.7s** from `docker run` to UI serving (the target is the 2-minute class; hard cap 15 minutes). First build with no cache ~54s. Configuration via `WARMLINE_DB` / `WARMLINE_SMTP` / `WARMLINE_HTTP` env vars or `--db` / `--smtp` / `--http` flags; the image defaults binds to `0.0.0.0` so port mappings work.
+
+`serve` accepts local SMTP submissions into the SQLite queue; it does **not** deliver mail — outbound is user-supplied-relay only. The SQLite file is the only state.
 
 ## How it works
 

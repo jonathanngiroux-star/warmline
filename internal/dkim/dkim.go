@@ -43,8 +43,8 @@ func Generate(selector, algorithm string) (*Key, error) {
 		return &Key{
 			Selector:      selector,
 			Algorithm:     "rsa",
-			PublicKey:      base64.StdEncoding.EncodeToString(pubDER),
-			PrivateKeyPEM:  pemStr,
+			PublicKey:     base64.StdEncoding.EncodeToString(pubDER),
+			PrivateKeyPEM: pemStr,
 		}, nil
 	case "ed25519":
 		pub, priv, err := ed25519.GenerateKey(rand.Reader)
@@ -59,8 +59,8 @@ func Generate(selector, algorithm string) (*Key, error) {
 		return &Key{
 			Selector:      selector,
 			Algorithm:     "ed25519",
-			PublicKey:      base64.StdEncoding.EncodeToString(pub),
-			PrivateKeyPEM:  pemStr,
+			PublicKey:     base64.StdEncoding.EncodeToString(pub),
+			PrivateKeyPEM: pemStr,
 		}, nil
 	default:
 		return nil, fmt.Errorf("algorithm must be rsa or ed25519 (got %q)", algorithm)

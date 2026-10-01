@@ -15,7 +15,9 @@ jobs:
         run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
       - name: vet
         run: go vet ./...
-      - name: test
+      - name: test (race on the concurrent packages)
+        run: go test -race ./internal/mta/ ./internal/serve/ ./internal/store/
+      - name: test (all)
         run: go test ./...
       - name: build
         run: go build -o warmline ./cmd/warmline
@@ -30,3 +32,48 @@ jobs:
                  and (.unmapped | map(.key))==["webhook.event.dropped","webhook.event.group_resubscribe"]
                  and (.risks | map(.key))==["ip_pools","suppression","templates.legacy","webhook.oauth"]
                  and .reputation_sim.status=="planned"' /tmp/report.json
+      # Postmark: same contract, gaps listed honestly (no fake 100%).
+      - name: migrate fixture gate (postmark)
+        run: |
+          ./warmline migrate --from=postmark --dry-run --format=json \
+            --input testdata/fixtures/postmark/sample-export.json > /tmp/pm.json
+          jq -e '.source=="postmark" and .dry_run==true
+                 and (.added | length)==2
+                 and (.risks | map(.key) | index("domain.unverified")) != null
+                 and (.risks | map(.key) | index("webhook.event.subscription_change")) != null
+                 and (.risks | map(.key) | index("suppression")) != null' /tmp/pm.json
+      # Simulation determinism: the computed curve must equal the
+      # committed golden byte-for-byte (normalized).
+      - name: simulate golden gate
+        run: |
+          ./warmline simulate --plan testdata/simulate/plan.json --format=json > /tmp/curve.json
+          jq -e '.days==21 and (.trajectory | length)==21
+                 and .trajectory[0].volume==500
+                 and .trajectory[13].volume==50000
+                 and (.disclaimer | contains("Not a deliverability guarantee"))' /tmp/curve.json
+          diff <(jq -S . testdata/simulate/golden-curve.json) <(jq -S . /tmp/curve.json) \
+            && echo "golden current" \
+            || (echo "::error::golden-curve.json is stale — regenerate" && exit 1)
+      # DKIM generation must produce valid records and never leak the
+      # private key in the default CI path.
+      - name: dkim smoke
+        run: |
+          ./warmline dkim generate --selector ci --algorithm ed25519 --domain example.com --format=json --no-private-key > /tmp/dkim.json
+          jq -e '.dns_host=="ci._domainkey.example.com" and (.dns_record | startswith("v=DKIM1; k=ed25519; p="))
+                 and (has("private_key_pem") | not)' /tmp/dkim.json
+      # serve must boot, accept SMTP submit, and serve the UI within 15s
+      # (the published cold-start hard cap).
+      - name: serve smoke (boot + ui + shutdown)
+        run: |
+          ./warmline serve --db /tmp/ci.db --smtp 127.0.0.1:2525 --http 127.0.0.1:18080 &
+          SRV=$!
+          for i in $(seq 1 15); do curl -sf http://127.0.0.1:18080/ >/dev/null && break; sleep 1; done
+          curl -sf http://127.0.0.1:18080/ | grep -q "total"
+          curl -sf http://127.0.0.1:18080/donate | grep -q "0x85ee7E71f762d772599cbF1EC20E651B30657521"
+          curl -sf -X POST http://127.0.0.1:18080/hooks/sendgrid \
+            -d '[{"event":"delivered","email":"u@example.net","sg_event_id":"E","sg_message_id":"M","timestamp":1759305600}]' | grep -q '"accepted":1'
+          kill $SRV
+          rm -f /tmp/ci.db*
+      # The docker image must build (the documented deploy path).
+      - name: docker build
+        run: docker build -t warmline-ci .
