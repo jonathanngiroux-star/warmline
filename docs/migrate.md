@@ -31,7 +31,7 @@ JSON output (default `--format=text` prints the same data human-readable):
 | Source | Status |
 |---|---|
 | SendGrid | dry-run report on fixture exports |
-| Postmark | planned (v0.1) |
+| Postmark | dry-run report on fixture exports |
 | Mailgun | backlog |
 
 ## CI gate

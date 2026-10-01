@@ -13,13 +13,15 @@ Teams spend $200–$2,000/month on SendGrid / Postmark / Mailgun largely to rent
 
 ## Status
 
-Pre-release, under active development. Currently working:
+Pre-release, under active development. All of the following is working today, covered by tests and exercised end-to-end:
 
 - `warmline version`, `warmline donate`
-- `warmline migrate --from=sendgrid --dry-run` (+ `--format=json`) on a PII-scrubbed fixture export
-- SQLite queue store (messages, attempts, bounces, complaints, DKIM selectors)
+- `warmline migrate --from=sendgrid|postmark --dry-run` (+ `--format=json`) with machine-stable reports
+- `warmline simulate --plan plan.json` — deterministic reputation trajectory (JSON or markdown), golden-fixture gated
+- `warmline dkim generate|rotate` — RSA-2048/Ed25519 keygen + rotation checklists
+- `warmline serve` — local SMTP submission → SQLite queue → HTTP UI (`/` queue stats, `/donate`, `/hooks/sendgrid` webhook ingest)
 
-Planned (v0.1): reputation trajectory simulation, webhook normalization for SendGrid, Postmark dry-run, DKIM rotation helpers, embedded queue UI, `serve`.
+Not in v0.1 scope: outbound delivery (relay wiring), Postmark/Mailgun webhook normalization, Mailgun migrate.
 
 ## Quick start (from source)
 
@@ -45,7 +47,8 @@ docker run --rm warmline version
 
 - **Single Go binary, SQLite queue, no cgo** — one file of state, one process, no Kubernetes.
 - **Outbound goes through your own relay credentials** (Resend / Postmark / SES / your SMTP server). Warmline never resells email and never operates IP pools.
-- **Migration is the product.** The dry-run diff (`added` / `removed` / `changed` / `unmapped` / `risks`) is machine-readable JSON so CI can gate a cutover on it.
+- **Migration is the product.** The dry-run diff (`added` / `removed` / `changed` / `unmapped` / `risks`) is machine-readable JSON so CI can gate a cutover on it. Bounces/complaints from ESP webhooks land in the local queue store even for mail the ESP sent before cutover.
+- **The webhook normalizer and the migrate report share one mapping table** — an event can't silently change mapping status between the dry-run and production ingest.
 - **Reputation simulation is simulation.** Warmup curves and risk bands are deterministic functions of your declared volume plan, bounce rate, complaint rate, and IP age. Warmline does not guarantee inbox placement and never will — anyone who promises that is selling you something.
 
 ## MTA core
