@@ -8,7 +8,7 @@ import (
 	"os"
 
 	"github.com/jonathanngiroux-star/warmline/internal/migrate"
-	"github.com/jonathanngiroux-star/warmline/internal/queue"
+	"github.com/jonathanngiroux-star/warmline/internal/webhooks"
 )
 
 // Export is the subset of a SendGrid account export Warmline reads.
@@ -94,23 +94,6 @@ type Export struct {
 	EventSamples []map[string]any `json:"event_samples"`
 }
 
-// canonicalWebhookEvents maps SendGrid event names to Warmline canonical
-// event kinds. Events absent from this table are reported unmapped — no
-// silent drops. Deliberately unmapped: `dropped` (ESP-side pre-queue
-// discard, no Warmline queue event) and `group_resubscribe` (ESP
-// unsubscribe-group management, not a delivery event).
-var canonicalWebhookEvents = map[string]queue.EventKind{
-	"processed":         queue.EventProcessed,
-	"delivered":         queue.EventDelivered,
-	"open":              queue.EventOpen,
-	"click":             queue.EventClick,
-	"bounce":            queue.EventBounce,
-	"deferred":          queue.EventDeferred,
-	"spam_report":       queue.EventSpamReport,
-	"unsubscribe":       queue.EventUnsub,
-	"group_unsubscribe": queue.EventUnsub,
-}
-
 // ParseFile reads and parses a SendGrid export JSON file.
 func ParseFile(path string) (*Export, error) {
 	raw, err := os.ReadFile(path)
@@ -163,9 +146,11 @@ func (e *Export) BuildReport() (migrate.Report, error) {
 		})
 	}
 
-	// Webhook event mapping — canonical set or unmapped, never silent.
+	// Webhook event mapping — one shared table with the webhook
+	// normalizer (webhooks.SendgridEventKind). Events absent from it are
+	// reported unmapped, never silently dropped.
 	for _, ev := range e.Webhook.Events {
-		if _, ok := canonicalWebhookEvents[ev]; ok {
+		if _, ok := webhooks.SendgridEventKind(ev); ok {
 			continue
 		}
 		r.Unmapped = append(r.Unmapped, migrate.Entry{

@@ -1,0 +1,76 @@
+[
+  {
+    "event": "delivered",
+    "email": "user1@example.net",
+    "sg_event_id": "SGEV1",
+    "sg_message_id": "SGM1",
+    "timestamp": 1759305600,
+    "smtp-id": "<abc@example.com>"
+  },
+  {
+    "event": "bounce",
+    "type": "bounce",
+    "email": "user2@example.net",
+    "sg_event_id": "SGEV2",
+    "sg_message_id": "SGM2",
+    "timestamp": 1759305660,
+    "status": "5.1.1",
+    "reason": "550 5.1.1 The email account that you tried to reach does not exist",
+    "bounce_type": "hard"
+  },
+  {
+    "event": "deferred",
+    "email": "user3@example.net",
+    "sg_event_id": "SGEV3",
+    "sg_message_id": "SGM3",
+    "timestamp": 1759305720,
+    "status": "4.2.2",
+    "attempt_num": "2",
+    "reason": "450 4.2.2 busy"
+  },
+  {
+    "event": "open",
+    "email": "user1@example.net",
+    "sg_event_id": "SGEV4",
+    "sg_message_id": "SGM1",
+    "timestamp": 1759305780
+  },
+  {
+    "event": "click",
+    "email": "user1@example.net",
+    "sg_event_id": "SGEV5",
+    "sg_message_id": "SGM1",
+    "timestamp": 1759305840,
+    "url": "https://example.com/docs"
+  },
+  {
+    "event": "spam_report",
+    "email": "user4@example.net",
+    "sg_event_id": "SGEV6",
+    "sg_message_id": "SGM4",
+    "timestamp": 1759305900
+  },
+  {
+    "event": "unsubscribe",
+    "email": "user5@example.net",
+    "sg_event_id": "SGEV7",
+    "sg_message_id": "SGM5",
+    "timestamp": 1759305960
+  },
+  {
+    "event": "group_unsubscribe",
+    "email": "user6@example.net",
+    "sg_event_id": "SGEV8",
+    "sg_message_id": "SGM6",
+    "timestamp": 1759306020,
+    "asm_group_id": 101
+  },
+  {
+    "event": "dropped",
+    "email": "user7@example.net",
+    "sg_event_id": "SGEV9",
+    "sg_message_id": "SGM7",
+    "timestamp": 1759306080,
+    "reason": "Bounced Address"
+  }
+]
