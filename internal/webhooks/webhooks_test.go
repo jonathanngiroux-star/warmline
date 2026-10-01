@@ -128,3 +128,74 @@ func TestSendgridEventKindContract(t *testing.T) {
 		t.Error("dropped must be unmapped (ESP-side pre-queue discard)")
 	}
 }
+
+// A bounce event with bounce_type absent must classify via the SMTP-code
+// taxonomy, not silently become unknown.
+func TestNormalizeSendgridBounceNoPreclass(t *testing.T) {
+	payload := `[{"event":"bounce","email":"u@example.net","sg_event_id":"E1","sg_message_id":"M1","timestamp":1759305600,"status":"5.1.1","reason":"550 5.1.1 user unknown"}]`
+	events, unmapped, err := NormalizeSendgrid([]byte(payload))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(unmapped) != 0 {
+		t.Errorf("unmapped = %v", unmapped)
+	}
+	if len(events) != 1 || events[0].BounceClass != queue.BounceHard {
+		t.Errorf("bounce without preclass should classify hard via 5.1.1: %+v", events)
+	}
+}
+
+// A soft-classified bounce (bounce_type: soft) with a 5xx code is still
+// soft per SendGrid's own label — the ESP's classification wins.
+func TestNormalizeSendgridBounceSoftPreclass(t *testing.T) {
+	payload := `[{"event":"bounce","email":"u@example.net","bounce_type":"soft","status":"4.2.1","reason":"450 busy","sg_event_id":"E1","sg_message_id":"M1","timestamp":1759305600}]`
+	events, _, err := NormalizeSendgrid([]byte(payload))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if events[0].BounceClass != queue.BounceSoft {
+		t.Errorf("soft preclass should hold: %+v", events[0])
+	}
+}
+
+// Events missing a timestamp must still normalize (At stays empty, not
+// a zero-date string).
+func TestNormalizeSendgridMissingTimestamp(t *testing.T) {
+	payload := `[{"event":"delivered","email":"u@example.net","sg_event_id":"E1","sg_message_id":"M1"}]`
+	events, _, err := NormalizeSendgrid([]byte(payload))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(events) != 1 {
+		t.Fatalf("events = %d", len(events))
+	}
+	if events[0].At != "" {
+		t.Errorf("At should be empty when timestamp absent, got %q", events[0].At)
+	}
+	if events[0].Recipient != "u@example.net" {
+		t.Errorf("recipient lost: %+v", events[0])
+	}
+}
+
+// An empty event array is a legal SendGrid webhook body.
+func TestNormalizeSendgridEmptyArray(t *testing.T) {
+	events, unmapped, err := NormalizeSendgrid([]byte(`[]`))
+	if err != nil {
+		t.Fatalf("empty array must not error: %v", err)
+	}
+	if len(events) != 0 || len(unmapped) != 0 {
+		t.Errorf("want empty results, got %d events, %v unmapped", len(events), unmapped)
+	}
+}
+
+// Duplicate unmapped event names are reported once, not per event.
+func TestNormalizeSendgridUnmappedDedup(t *testing.T) {
+	payload := `[{"event":"dropped","email":"a@x.com"},{"event":"dropped","email":"b@x.com"}]`
+	_, unmapped, err := NormalizeSendgrid([]byte(payload))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(unmapped) != 1 || unmapped[0] != "dropped" {
+		t.Errorf("unmapped = %v, want [dropped] once", unmapped)
+	}
+}

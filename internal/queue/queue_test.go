@@ -87,3 +87,26 @@ func containsKey(b []byte, key string) bool {
 	_, ok := m[key]
 	return ok
 }
+
+func TestClassifyBounceEnhancedCodes(t *testing.T) {
+	tests := []struct {
+		name string
+		code string
+		want BounceClass
+	}{
+		{"enhanced hard", "5.1.1", BounceHard},
+		{"enhanced soft", "4.2.1", BounceSoft},
+		{"enhanced hard 3-part", "5.7.1", BounceHard},
+		{"reply code still works", "550", BounceHard},
+		{"junk rejected", "abc", BounceUnknown},
+		{"empty rejected", "", BounceUnknown},
+		{"too short", "5.", BounceUnknown},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := ClassifyBounce(tc.code, ""); got != tc.want {
+				t.Errorf("ClassifyBounce(%q) = %q, want %q", tc.code, got, tc.want)
+			}
+		})
+	}
+}

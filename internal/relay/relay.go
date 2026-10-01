@@ -99,7 +99,7 @@ func (r *Relay) deliver(msg *store.Message) error {
 		from = msg.Metadata["from"]
 	}
 	if from == "" {
-		from = headerValue(msg.Body, "From")
+		from = addrSpec(headerValue(msg.Body, "From"))
 	}
 	if from == "" {
 		return fmt.Errorf("no envelope-from: set relay --from or include From: in the message")
@@ -132,16 +132,28 @@ func splitHostPort(addr string) (string, string, error) {
 }
 
 // headerValue extracts a header value from a raw RFC 5322 message
-// ("From: addr" in the header block). Returns "" when absent.
+// ("From: addr" in the header block). Returns "" when absent. Handles
+// CRLF, LF, and CR line endings; stops at the first empty line.
 func headerValue(raw, name string) string {
-	for _, line := range strings.Split(raw, "\r\n") {
-		if strings.HasPrefix(strings.ToLower(line), strings.ToLower(name)+":") {
+	normalized := strings.ReplaceAll(raw, "\r\n", "\n")
+	normalized = strings.ReplaceAll(normalized, "\r", "\n")
+	for _, line := range strings.Split(normalized, "\n") {
+		if len(line) > len(name) && strings.EqualFold(line[:len(name)], name) && line[len(name)] == ':' {
 			return strings.TrimSpace(line[len(name)+1:])
-		}
-		// header block ends at the first empty line
-		if line == "" {
-			break
 		}
 	}
 	return ""
+}
+
+// addrSpec extracts the bare address from a From: header value that may
+// carry a display name ("Acme <a@b.com>") or be bare ("a@b.com").
+// Relays reject display names in the envelope — this returns the
+// addr-spec only.
+func addrSpec(v string) string {
+	if i := strings.LastIndex(v, "<"); i >= 0 {
+		if j := strings.Index(v[i:], ">"); j > 0 {
+			return v[i+1 : i+j]
+		}
+	}
+	return v
 }

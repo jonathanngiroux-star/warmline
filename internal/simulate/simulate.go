@@ -84,22 +84,27 @@ func (p *Plan) Validate() error {
 	return nil
 }
 
-// Run simulates the plan and returns the trajectory.
+// Run simulates the plan and returns the trajectory. The caller's plan
+// is never mutated; RampDays=0 is legal (day 1 jumps straight to
+// target) and is reported as declared in Result.Plan.
 func Run(plan *Plan) (*Result, error) {
 	if err := plan.Validate(); err != nil {
 		return nil, err
 	}
-	if plan.RampDays == 0 {
-		plan.RampDays = 1 // day 1 jumps straight to target
+	ramp := plan.RampDays
+	if ramp == 0 {
+		ramp = 1 // effective ramp: day 1 hits target immediately
 	}
+	effective := *plan
+	effective.RampDays = ramp
 	traj := make([]DayPoint, 0, plan.Days)
 	for day := 1; day <= plan.Days; day++ {
-		vol := volumeOn(plan, day)
+		vol := volumeOn(&effective, day)
 		traj = append(traj, DayPoint{
 			Day:       day,
 			Volume:    vol,
-			BlockRisk: blockRisk(plan.BounceRate, plan.ComplaintRate, plan.IPAge, day, plan.RampDays),
-			DeferRisk: deferRisk(plan.BounceRate, plan.ComplaintRate, plan.IPAge, day, plan.RampDays),
+			BlockRisk: blockRisk(plan.BounceRate, plan.ComplaintRate, plan.IPAge, day, ramp),
+			DeferRisk: deferRisk(plan.BounceRate, plan.ComplaintRate, plan.IPAge, day, ramp),
 		})
 	}
 	return &Result{Plan: *plan, Days: plan.Days, Trajectory: traj, Disclaimer: disclaimer}, nil

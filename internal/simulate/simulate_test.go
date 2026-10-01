@@ -176,3 +176,23 @@ func contains(s, sub string) bool {
 	}
 	return false
 }
+
+// Run must not mutate the caller's plan (RampDays=0 is legal: jump
+// straight to target). The result must report what was declared.
+func TestRunDoesNotMutatePlan(t *testing.T) {
+	plan := &Plan{VolumeStart: 100, VolumeTarget: 1000, RampDays: 0, Days: 5, BounceRate: 1, ComplaintRate: 0.05, IPAge: "aged"}
+	r, err := Run(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if plan.RampDays != 0 {
+		t.Errorf("Run mutated the caller's plan: RampDays = %d, want 0", plan.RampDays)
+	}
+	if r.Plan.RampDays != 0 {
+		t.Errorf("Result.Plan laundered the declared value: %d, want 0 (report what was declared)", r.Plan.RampDays)
+	}
+	// day 1 jumps straight to target when ramp is 0
+	if r.Trajectory[0].Volume != 1000 {
+		t.Errorf("ramp 0 should hit target on day 1, got %d", r.Trajectory[0].Volume)
+	}
+}

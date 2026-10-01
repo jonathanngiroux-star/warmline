@@ -43,22 +43,42 @@ type CanonicalEvent struct {
 }
 
 // ClassifyBounce maps an SMTP reply code + diagnostic to the Warmline
-// bounce taxonomy. Codes outside 4xx/5xx and unparsable junk are unknown.
+// bounce taxonomy. Accepts both reply codes ("550", "421") and enhanced
+// status codes ("5.1.1", "4.2.1") — ESPs send both forms. Codes outside
+// 4xx/5xx and unparsable junk are unknown.
 func ClassifyBounce(code, diagnostic string) BounceClass {
+	if !codeClassifiable(code) {
+		return BounceUnknown
+	}
 	// 5xx = permanent → hard unless the diagnostic screams reputation or
 	// blocklist, which makes it a block, not a recipient failure.
-	if len(code) == 3 && code[0] == '5' {
+	if code[0] == '5' {
 		if blockListed(diagnostic) {
 			return BounceBlock
 		}
 		return BounceHard
 	}
-	// 4xx = temporary → soft (retry) unless it is a deferral that is
-	// really a reputation block.
-	if len(code) == 3 && code[0] == '4' {
-		return BounceSoft
+	// 4xx = temporary → soft (retry).
+	return BounceSoft
+}
+
+// codeClassifiable reports whether code is a 4xx/5xx reply code ("550")
+// or enhanced status code ("5.1.1", "4.2.2"): first char 4 or 5,
+// remaining chars digits or dots, at least 3 chars total.
+func codeClassifiable(code string) bool {
+	if len(code) < 3 {
+		return false
 	}
-	return BounceUnknown
+	if code[0] != '4' && code[0] != '5' {
+		return false
+	}
+	for i := 1; i < len(code); i++ {
+		c := code[i]
+		if (c < '0' || c > '9') && c != '.' {
+			return false
+		}
+	}
+	return true
 }
 
 // blockListed reports whether a diagnostic looks like an ISP/reputation

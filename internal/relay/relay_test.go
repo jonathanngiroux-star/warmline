@@ -135,3 +135,43 @@ func TestConfigValidation(t *testing.T) {
 		t.Errorf("valid config rejected: %v", err)
 	}
 }
+
+// Envelope-from fallback: a From: header with a display name ("From: Acme
+// <a@b.com>") must extract the addr-spec only — relays reject display
+// names in the envelope.
+func TestDeliverFromHeaderWithDisplayName(t *testing.T) {
+	fake, addr := startFakeRelay(t)
+	db := openTestStore(t)
+	if _, err := db.Enqueue("user@example.net",
+		"From: Acme Notices <app@example.com>\r\nSubject: t\r\n\r\nbody\r\n", nil); err != nil {
+		t.Fatal(err)
+	}
+	r := New(Config{Addr: addr})
+	if _, err := r.WorkOnce(db); err != nil {
+		t.Fatalf("work once: %v", err)
+	}
+	inbox := fake.Inbox()
+	if len(inbox) != 1 {
+		t.Fatalf("relay inbox = %d, want 1", len(inbox))
+	}
+	if inbox[0].From != "app@example.com" {
+		t.Errorf("envelope-from = %q, want addr-spec only (app@example.com)", inbox[0].From)
+	}
+}
+
+// LF-only line endings in the stored body must still yield a From header.
+func TestDeliverFromHeaderLFOnly(t *testing.T) {
+	fake, addr := startFakeRelay(t)
+	db := openTestStore(t)
+	if _, err := db.Enqueue("user@example.net", "From: app@example.com\nSubject: t\n\nbody\n", nil); err != nil {
+		t.Fatal(err)
+	}
+	r := New(Config{Addr: addr})
+	if _, err := r.WorkOnce(db); err != nil {
+		t.Fatalf("work once: %v", err)
+	}
+	inbox := fake.Inbox()
+	if len(inbox) != 1 || inbox[0].From != "app@example.com" {
+		t.Errorf("LF-only body: from = %v", inbox)
+	}
+}

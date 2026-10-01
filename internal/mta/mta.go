@@ -128,22 +128,31 @@ func (s *Server) handleConn(conn net.Conn) {
 			return
 		}
 		cmd := strings.TrimSpace(line)
-		upper := strings.ToUpper(cmd)
-		verb := upper
-		if i := strings.IndexAny(upper, " 	"); i > 0 {
-			verb = upper[:i]
+		verb := strings.ToUpper(cmd)
+		if i := strings.IndexAny(verb, " 	"); i > 0 {
+			verb = verb[:i]
+		}
+		// addrArg extracts the address after a case-insensitive
+		// "FROM:"/"TO:" argument prefix, preserving the address's own
+		// case (local parts are case-sensitive per RFC 5321). Lowercase
+		// verbs ("mail from:<a@b>") are legal and must parse.
+		addrArg := func(prefix string) string {
+			rest := strings.TrimSpace(cmd[len(verb):])
+			if len(rest) < len(prefix) || !strings.EqualFold(rest[:len(prefix)], prefix) {
+				return ""
+			}
+			arg := strings.TrimSpace(rest[len(prefix):])
+			arg = strings.TrimSuffix(strings.TrimPrefix(strings.TrimSpace(arg), "<"), ">")
+			return arg
 		}
 		switch verb {
 		case "EHLO", "HELO":
 			writeLine("250-warmline")
 			writeLine("250 OK")
 		case "MAIL":
-			// Address is case-sensitive per RFC 5321; only the verb was
-			// uppercased. Extract from the raw line.
-			arg := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(cmd), "MAIL FROM:"))
-			arg = strings.TrimSuffix(strings.TrimPrefix(strings.TrimSpace(arg), "<"), ">")
+			arg := addrArg("FROM:")
 			if arg == "" {
-				writeLine("501 missing address")
+				writeLine("501 syntax: MAIL FROM:<address>")
 				continue
 			}
 			from = arg
@@ -153,10 +162,9 @@ func (s *Server) handleConn(conn net.Conn) {
 				writeLine("503 need MAIL before RCPT")
 				continue
 			}
-			arg := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(cmd), "RCPT TO:"))
-			arg = strings.TrimSuffix(strings.TrimPrefix(strings.TrimSpace(arg), "<"), ">")
+			arg := addrArg("TO:")
 			if arg == "" {
-				writeLine("501 missing address")
+				writeLine("501 syntax: RCPT TO:<address>")
 				continue
 			}
 			rcpt = append(rcpt, arg)
@@ -173,10 +181,16 @@ func (s *Server) handleConn(conn net.Conn) {
 				if err != nil {
 					return
 				}
-				if strings.TrimSpace(dl) == "." {
+				trimmed := strings.TrimRight(dl, "\r\n")
+				if trimmed == "." {
 					break
 				}
-				data.WriteString(dl)
+				// RFC 5321 4.5.2: the receiver un-stuffs a leading dot.
+				if strings.HasPrefix(trimmed, "..") {
+					trimmed = trimmed[1:]
+				}
+				data.WriteString(trimmed)
+				data.WriteString("\r\n")
 			}
 			msg := Message{From: from, To: rcpt, Data: data.String()}
 			s.mu.Lock()

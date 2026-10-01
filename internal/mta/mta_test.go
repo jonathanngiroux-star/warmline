@@ -140,3 +140,70 @@ func TestSMTPNoopQuit(t *testing.T) {
 		t.Fatalf("QUIT: %q", resp)
 	}
 }
+
+// RFC 5321 §4.5.2: a line starting with "." in the body is sent stuffed
+// (".." on the wire) and MUST be un-stuffed by the receiver. Storing the
+// stuffed form corrupts the body: relaying re-stuffs it.
+func TestSMTPDataUnstuffsLeadingDots(t *testing.T) {
+	srv, addr := startServer(t)
+	conn, r := dial(t, addr)
+	defer conn.Close()
+	sendCmd(t, conn, r, "EHLO t")
+	for strings.HasPrefix(readLine(t, r), "250-") {
+	}
+	sendCmd(t, conn, r, "MAIL FROM:<app@example.com>")
+	sendCmd(t, conn, r, "RCPT TO:<user@example.net>")
+	sendCmd(t, conn, r, "DATA")
+	// body contains a line that starts with a single dot
+	body := "Subject: dot test\r\n\r\n..stuffed line\r\nnormal line\r\n.\r\n"
+	if _, err := conn.Write([]byte(body)); err != nil {
+		t.Fatal(err)
+	}
+	resp := readLine(t, r)
+	if !strings.HasPrefix(resp, "250") {
+		t.Fatalf("DATA submit: %q", resp)
+	}
+	inbox := srv.Inbox()
+	if len(inbox) != 1 {
+		t.Fatalf("inbox = %d, want 1", len(inbox))
+	}
+	if strings.Contains(inbox[0].Data, "..stuffed") {
+		t.Errorf("body stored STUFFED — receiver must un-stuff: %q", inbox[0].Data)
+	}
+	if !strings.Contains(inbox[0].Data, ".stuffed line") {
+		t.Errorf("un-stuffed body line missing: %q", inbox[0].Data)
+	}
+}
+
+// RFC 5321 verbs are case-insensitive; lowercase commands must parse.
+func TestSMTPLowercaseCommands(t *testing.T) {
+	srv, addr := startServer(t)
+	conn, r := dial(t, addr)
+	defer conn.Close()
+	sendCmd(t, conn, r, "ehlo tester")
+	for strings.HasPrefix(readLine(t, r), "250-") {
+	}
+	if resp := sendCmd(t, conn, r, "mail from:<app@example.com>"); !strings.HasPrefix(resp, "250") {
+		t.Fatalf("lowercase MAIL: %q", resp)
+	}
+	if resp := sendCmd(t, conn, r, "rcpt to:<user@example.net>"); !strings.HasPrefix(resp, "250") {
+		t.Fatalf("lowercase RCPT: %q", resp)
+	}
+	sendCmd(t, conn, r, "DATA")
+	if _, err := conn.Write([]byte("From: app@example.com\r\n\r\nhi\r\n.\r\n")); err != nil {
+		t.Fatal(err)
+	}
+	if resp := readLine(t, r); !strings.HasPrefix(resp, "250") {
+		t.Fatalf("lowercase submit: %q", resp)
+	}
+	inbox := srv.Inbox()
+	if len(inbox) != 1 {
+		t.Fatalf("inbox = %d, want 1", len(inbox))
+	}
+	if inbox[0].From != "app@example.com" {
+		t.Errorf("From = %q (garbage from case-sensitive trim), want app@example.com", inbox[0].From)
+	}
+	if inbox[0].To[0] != "user@example.net" {
+		t.Errorf("To = %v, want user@example.net", inbox[0].To)
+	}
+}

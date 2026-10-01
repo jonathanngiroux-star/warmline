@@ -1,7 +1,9 @@
 package store
 
 import (
+	"fmt"
 	"path/filepath"
+	"sync"
 	"testing"
 
 	"github.com/jonathanngiroux-star/warmline/internal/queue"
@@ -333,5 +335,57 @@ func TestPathAccessor(t *testing.T) {
 	defer db.Close()
 	if db.Path() != p {
 		t.Errorf("Path() = %q, want %q", db.Path(), p)
+	}
+}
+
+// Concurrent dequeue: N workers draining M messages must never return
+// the same message twice and never error (SQLITE_BUSY_SNAPSHOT from a
+// deferred-transaction upgrade is a hard failure, not retried by
+// busy_timeout).
+func TestDequeueConcurrentNoDuplicates(t *testing.T) {
+	db := openTestDB(t)
+	const total = 40
+	for i := 0; i < total; i++ {
+		if _, err := db.Enqueue(fmt.Sprintf("u%d@example.net", i), "m", nil); err != nil {
+			t.Fatal(err)
+		}
+	}
+	var mu sync.Mutex
+	seen := map[int64]bool{}
+	var dupErr, failErr error
+	var wg sync.WaitGroup
+	for w := 0; w < 8; w++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for {
+				msg, err := db.Dequeue()
+				if err != nil {
+					mu.Lock()
+					failErr = err
+					mu.Unlock()
+					return
+				}
+				if msg == nil {
+					return
+				}
+				mu.Lock()
+				if seen[msg.ID] {
+					dupErr = fmt.Errorf("message %d dequeued twice", msg.ID)
+				}
+				seen[msg.ID] = true
+				mu.Unlock()
+			}
+		}()
+	}
+	wg.Wait()
+	if failErr != nil {
+		t.Errorf("concurrent dequeue errored: %v", failErr)
+	}
+	if dupErr != nil {
+		t.Error(dupErr)
+	}
+	if len(seen) != total {
+		t.Errorf("dequeued %d unique messages, want %d", len(seen), total)
 	}
 }

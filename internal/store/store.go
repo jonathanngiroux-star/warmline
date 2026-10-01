@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"sync"
 
 	"github.com/jonathanngiroux-star/warmline/internal/queue"
 	_ "modernc.org/sqlite"
@@ -15,6 +16,13 @@ import (
 type Store struct {
 	db   *sql.DB
 	path string
+	// mu serializes multi-statement write transactions (Dequeue's
+	// claim). SQLite is single-writer; a deferred BEGIN that upgrades
+	// to a write under concurrency fails immediately with
+	// SQLITE_BUSY_SNAPSHOT, which busy_timeout does NOT retry. One
+	// process = one Store = this mutex closes the race; cross-process
+	// writers still fall back to busy_timeout on plain writes.
+	mu sync.Mutex
 }
 
 const schema = `
@@ -129,6 +137,8 @@ func (s *Store) Enqueue(recipient, body string, metadata map[string]string) (int
 // Dequeue claims the oldest queued message (FIFO) and marks it
 // processing. Returns nil when the queue is empty.
 func (s *Store) Dequeue() (*Message, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	tx, err := s.db.Begin()
 	if err != nil {
 		return nil, err
