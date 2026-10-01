@@ -9,7 +9,16 @@ Teams spend $200–$2,000/month on SendGrid / Postmark / Mailgun largely to rent
 - bounce/complaint classification in a local SQLite queue, with normalized webhooks
 - DKIM rotation helpers — config snippets, not a CA
 
-**Warmline is free to self-host. If it saves you a SendGrid week, [donate](docs/donate.md).** There is no paid tier, no subscription, no "contact sales," and no feature will ever be gated on money.
+**Warmline is free to self-host. If it saves you a SendGrid week, donate.** There is no paid tier, no subscription, no "contact sales," and no feature will ever be gated on money.
+
+## Donate
+
+Warmline takes donations only — no subscriptions, ever.
+
+- **ETH / USDC (ERC-20):** `0x85ee7E71f762d772599cbF1EC20E651B30657521`
+- **BTC:** `bc1qxe2zx5tv3hdreaej6s2x4p7han85uey828rrhg`
+
+No feature is gated on donation amount. Details, attribution format, and the wallet-change governance rule: [docs/donate.md](docs/donate.md) · run `warmline donate` to print both addresses from the binary.
 
 ## Status
 
