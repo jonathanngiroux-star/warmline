@@ -31,11 +31,16 @@ func main() {
 
 func run(args []string, stdout, stderr io.Writer) int {
 	if len(args) == 0 {
-		usage(stderr)
-		return 2
+		// Bare `warmline` in a terminal opens the TUI — the operator's
+		// front door. In non-TTY contexts launchTUI prints a hint.
+		return launchTUI(args, stdout, stderr)
 	}
 	cmd, rest := args[0], args[1:]
 	switch cmd {
+	case "tui":
+		return launchTUI(rest, stdout, stderr)
+	case "desktop":
+		return launchDesktop(rest, stdout, stderr)
 	case "version":
 		return cmdVersion(stdout)
 	case "donate":
@@ -59,6 +64,9 @@ func usage(w io.Writer) {
 	fmt.Fprint(w, `usage: warmline <command> [flags]
 
 commands:
+  (none)    open the TUI (interactive terminal)
+  tui       open the TUI (interactive terminal)
+  desktop   open the desktop GUI (desktop build: -tags fyne)
   version   print version
   donate    print donation addresses
   migrate   dry-run a migration from an ESP (sendgrid, postmark)

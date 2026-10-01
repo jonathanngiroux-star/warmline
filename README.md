@@ -23,6 +23,22 @@ Pre-release, under active development. All of the following is working today, co
 
 Not in v0.1 scope: Postmark/Mailgun webhook normalization, Mailgun migrate. (Outbound delivery exists via user-supplied relay — it is your relay, your keys; Warmline operates none.)
 
+## Two front doors
+
+```sh
+warmline            # TUI — the operator's terminal UI (every binary)
+warmline desktop    # desktop GUI (build with -tags fyne; see below)
+```
+
+The TUI and the GUI are thin renderers over one logic layer (`tuiModel`, fully tested) — queue, bounces, DKIM generation, migrate dry-runs, reputation simulation, and the donate page are the same operations in both. The GUI needs a one-time desktop build:
+
+```sh
+go build -tags fyne -o warmline-desktop ./cmd/warmline
+./warmline-desktop desktop
+```
+
+The default binary stays cgo-free (runs in Docker/scratch/CI); `warmline desktop` in that build prints instructions instead of crashing. Non-interactive contexts (pipes, CI) never hang — the TUI refuses with a hint.
+
 ## Quick start (from source)
 
 ```sh

@@ -13,7 +13,8 @@ import (
 
 // Store wraps the SQLite database holding the Warmline queue.
 type Store struct {
-	db *sql.DB
+	db   *sql.DB
+	path string
 }
 
 const schema = `
@@ -84,7 +85,7 @@ func Open(path string) (*Store, error) {
 		db.Close()
 		return nil, fmt.Errorf("schema: %w", err)
 	}
-	return &Store{db: db}, nil
+	return &Store{db: db, path: path}, nil
 }
 
 // Close closes the underlying database.
@@ -93,6 +94,9 @@ func (s *Store) Close() error { return s.db.Close() }
 // DB exposes the underlying *sql.DB for read-only queries (stats, UI).
 // Callers must not close it; use Store.Close.
 func (s *Store) DB() *sql.DB { return s.db }
+
+// Path returns the database file path ("" for in-memory handles).
+func (s *Store) Path() string { return s.path }
 
 // Message is a queue row as the worker sees it.
 type Message struct {

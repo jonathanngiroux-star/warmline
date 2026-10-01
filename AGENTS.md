@@ -41,6 +41,11 @@ Binding brief: `IDEA.md`. This file is the enforcement summary. If a request fig
 - CI: GitHub Actions; fidelity gates on migrate dry-run; golden fixture → deterministic simulation JSON.
 - Solo-maintainable surface area is a hard constraint. Every added file is a liability.
 
+## Front doors
+
+- Bare `warmline` in a terminal opens the TUI (tview, pure Go, ships in every binary). `warmline tui` is the same thing.
+- `warmline desktop` opens the Fyne GUI in builds compiled with `-tags fyne` (cgo); the default cgo-free build prints build instructions. No Wails/web frontend — one logic layer (`tuiModel`), two thin renderers; a web frontend's npm supply chain is a liability this project does not carry.
+
 ## Working rules
 
 1. Migration + simulation outrank "better MTA." Always.

@@ -249,3 +249,89 @@ func TestRequeue(t *testing.T) {
 		t.Errorf("requeue on queued row errored: %v", err)
 	}
 }
+
+func TestListMessages(t *testing.T) {
+	db := openTestDB(t)
+	id1, _ := db.Enqueue("a@example.net", "m1", nil)
+	id2, _ := db.Enqueue("b@example.net", "m2", nil)
+	msgs, err := db.ListMessages(10)
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	if len(msgs) != 2 {
+		t.Fatalf("messages = %d, want 2", len(msgs))
+	}
+	// newest first (UI wants recent on top)
+	if msgs[0].ID != id2 || msgs[1].ID != id1 {
+		t.Errorf("order wrong: got ids %d,%d want %d,%d", msgs[0].ID, msgs[1].ID, id2, id1)
+	}
+	// limit respected
+	if _, err := db.Enqueue("c@example.net", "m3", nil); err != nil {
+		t.Fatal(err)
+	}
+	msgs, err = db.ListMessages(2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(msgs) != 2 {
+		t.Errorf("limit ignored: %d messages", len(msgs))
+	}
+}
+
+func TestListBounces(t *testing.T) {
+	db := openTestDB(t)
+	id, _ := db.Enqueue("a@example.net", "m", nil)
+	if err := db.RecordBounce(id, "a@example.net", "550", "no user", queue.BounceHard); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.RecordBounce(id, "b@example.net", "421", "busy", queue.BounceSoft); err != nil {
+		t.Fatal(err)
+	}
+	bs, err := db.ListBounces(10)
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	if len(bs) != 2 {
+		t.Fatalf("bounces = %d, want 2", len(bs))
+	}
+	if bs[0].Class != "soft" && bs[1].Class != "soft" {
+		t.Errorf("classes missing soft: %+v", bs)
+	}
+	if bs[0].MessageID == 0 && bs[0].Recipient == "" {
+		t.Error("bounce row missing fields")
+	}
+}
+
+func TestListDKIMs(t *testing.T) {
+	db := openTestDB(t)
+	if err := db.UpsertDKIM("example.com", "s1", "pub1", "2026-09-30"); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.UpsertDKIM("example.com", "s2", "pub2", "2026-10-01"); err != nil {
+		t.Fatal(err)
+	}
+	ks, err := db.ListDKIMs()
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	if len(ks) != 2 {
+		t.Fatalf("dkims = %d, want 2", len(ks))
+	}
+	// newest selector first (rotation view)
+	if ks[0].Selector != "s2" {
+		t.Errorf("newest first violated: %+v", ks)
+	}
+}
+
+func TestPathAccessor(t *testing.T) {
+	dir := t.TempDir()
+	p := filepath.Join(dir, "p.db")
+	db, err := Open(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	if db.Path() != p {
+		t.Errorf("Path() = %q, want %q", db.Path(), p)
+	}
+}
