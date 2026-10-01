@@ -41,7 +41,7 @@ CREATE INDEX IF NOT EXISTS idx_attempts_message ON attempts(message_id);
 
 CREATE TABLE IF NOT EXISTS bounces (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,
-  message_id  INTEGER NOT NULL REFERENCES messages(id),
+  message_id  INTEGER REFERENCES messages(id),
   recipient   TEXT NOT NULL,
   smtp_code   TEXT NOT NULL DEFAULT '',
   diagnostic  TEXT NOT NULL DEFAULT '',
@@ -52,7 +52,7 @@ CREATE INDEX IF NOT EXISTS idx_bounces_message ON bounces(message_id);
 
 CREATE TABLE IF NOT EXISTS complaints (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,
-  message_id  INTEGER NOT NULL REFERENCES messages(id),
+  message_id  INTEGER REFERENCES messages(id),
   recipient   TEXT NOT NULL,
   at          TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
@@ -89,6 +89,10 @@ func Open(path string) (*Store, error) {
 
 // Close closes the underlying database.
 func (s *Store) Close() error { return s.db.Close() }
+
+// DB exposes the underlying *sql.DB for read-only queries (stats, UI).
+// Callers must not close it; use Store.Close.
+func (s *Store) DB() *sql.DB { return s.db }
 
 // Message is a queue row as the worker sees it.
 type Message struct {
@@ -164,7 +168,7 @@ func (s *Store) MarkSent(id int64, relay string) error {
 // RecordAttempt logs a delivery attempt against a message.
 func (s *Store) RecordAttempt(messageID int64, relay, smtpCode, diagnostic string) error {
 	_, err := s.db.Exec(
-		`INSERT INTO attempts (message_id, relay, smtp_code, diagnostic) VALUES (?, ?, ?, ?)`,
+		`INSERT INTO attempts (message_id, relay, smtp_code, diagnostic) VALUES (NULLIF(?, 0), ?, ?, ?)`,
 		messageID, relay, smtpCode, diagnostic)
 	return err
 }
@@ -172,7 +176,7 @@ func (s *Store) RecordAttempt(messageID int64, relay, smtpCode, diagnostic strin
 // RecordBounce stores a classified bounce.
 func (s *Store) RecordBounce(messageID int64, recipient, smtpCode, diagnostic string, class queue.BounceClass) error {
 	_, err := s.db.Exec(
-		`INSERT INTO bounces (message_id, recipient, smtp_code, diagnostic, class) VALUES (?, ?, ?, ?, ?)`,
+		`INSERT INTO bounces (message_id, recipient, smtp_code, diagnostic, class) VALUES (NULLIF(?, 0), ?, ?, ?, ?)`,
 		messageID, recipient, smtpCode, diagnostic, string(class))
 	return err
 }
@@ -180,7 +184,7 @@ func (s *Store) RecordBounce(messageID int64, recipient, smtpCode, diagnostic st
 // RecordComplaint stores a spam complaint.
 func (s *Store) RecordComplaint(messageID int64, recipient string) error {
 	_, err := s.db.Exec(
-		`INSERT INTO complaints (message_id, recipient) VALUES (?, ?)`,
+		`INSERT INTO complaints (message_id, recipient) VALUES (NULLIF(?, 0), ?)`,
 		messageID, recipient)
 	return err
 }

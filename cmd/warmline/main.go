@@ -45,8 +45,9 @@ func run(args []string, stdout, stderr io.Writer) int {
 	case "simulate":
 		return cmdSimulate(rest, stdout, stderr)
 	case "serve":
-		fmt.Fprintf(stderr, "warmline %s is not implemented yet (planned for v0.1)\n", cmd)
-		return 2
+		return cmdServe(rest, stdout, stderr)
+	case "dkim":
+		return cmdDKIM(rest, stdout, stderr)
 	default:
 		fmt.Fprintf(stderr, "unknown command %q\n\n", cmd)
 		usage(stderr)
@@ -63,6 +64,7 @@ commands:
   migrate   dry-run a migration from an ESP (sendgrid, postmark)
   simulate  reputation trajectory simulation
   serve     run the local MTA wrapper + queue + UI
+  dkim      DKIM key generation + rotation plans
 
 Warmline is free to self-host; donations only — see docs/donate.md.
 `)

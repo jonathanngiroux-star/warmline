@@ -213,3 +213,14 @@ func TestDKIMRoundTrip(t *testing.T) {
 		t.Errorf("dkim rows = %v, want [s1 s2]", got)
 	}
 }
+
+func TestDBAccessor(t *testing.T) {
+	db := openTestDB(t)
+	if db.DB() == nil {
+		t.Fatal("DB() returned nil")
+	}
+	var one int
+	if err := db.DB().QueryRow("SELECT 1").Scan(&one); err != nil || one != 1 {
+		t.Fatalf("DB() not queryable: %v", err)
+	}
+}
