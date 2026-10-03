@@ -1,0 +1,127 @@
+// wizard.js — the guided setup wizard modal. Step data and actions
+// live in Go (wizard.go / wizard_interactive.go); this renders the
+// fields per step, collects values on Run, and shows the result.
+
+const wBackend = window.go.main.DesktopApp;
+const w$ = (id) => document.getElementById(id);
+
+let steps = [];
+let current = 0;
+
+function renderStep() {
+  const s = steps[current];
+  w$('wizard-title').textContent = s.title;
+  w$('wizard-body').textContent = s.body;
+  w$('wizard-progress').textContent = (current + 1) + ' / ' + steps.length;
+
+  // fields
+  const fieldsEl = w$('wizard-fields');
+  fieldsEl.innerHTML = '';
+  for (const f of s.fields || []) {
+    const label = document.createElement('label');
+    const span = document.createElement('span');
+    span.textContent = f.label;
+    label.appendChild(span);
+    let input;
+    if (f.kind === 'select') {
+      input = document.createElement('select');
+      for (const opt of f.options || []) {
+        const o = document.createElement('option');
+        o.value = opt;
+        o.textContent = opt;
+        input.appendChild(o);
+      }
+      input.value = f.value;
+    } else {
+      input = document.createElement('input');
+      input.type = f.kind === 'path' ? 'text' : 'text';
+      input.value = f.value;
+      input.placeholder = f.hint || '';
+    }
+    input.dataset.fieldId = f.id;
+    label.appendChild(input);
+    fieldsEl.appendChild(label);
+    if (f.id === 'input' && s.id === 'migrate') {
+      const sampleBtn = document.createElement('button');
+      sampleBtn.type = 'button';
+      sampleBtn.textContent = 'Use sample export';
+      sampleBtn.addEventListener('click', async () => {
+        try {
+          const p = await wBackend.SampleExportPath();
+          input.value = p;
+        } catch (e) {
+          w$('wizard-output').textContent = 'error: ' + e;
+          w$('wizard-output').classList.remove('hidden');
+        }
+      });
+      fieldsEl.appendChild(sampleBtn);
+    }
+  }
+
+  // output area
+  const out = w$('wizard-output');
+  out.classList.add('hidden');
+  out.textContent = '';
+
+  // run button
+  const run = w$('wizard-run');
+  if (s.fields && s.fields.length > 0) {
+    run.textContent = s.nextLabel;
+    run.classList.remove('hidden');
+  } else {
+    run.classList.add('hidden');
+  }
+  w$('wizard-next').textContent = current === steps.length - 1 ? 'Finish' : 'Next';
+}
+
+function collectValues() {
+  const values = {};
+  for (const input of w$('wizard-fields').querySelectorAll('input, select')) {
+    values[input.dataset.fieldId] = input.value;
+  }
+  return values;
+}
+
+async function startWizard() {
+  steps = await wBackend.WizardSteps();
+  current = 0;
+  renderStep();
+  w$('wizard-modal').classList.remove('hidden');
+}
+
+function closeWizard(markDone) {
+  if (markDone) {
+    wBackend.WizardDone().catch(() => {});
+  }
+  w$('wizard-modal').classList.add('hidden');
+}
+
+w$('wizard-btn').addEventListener('click', startWizard);
+
+w$('wizard-run').addEventListener('click', async () => {
+  const s = steps[current];
+  const out = w$('wizard-output');
+  try {
+    const result = await wBackend.WizardRunStep(s.id, collectValues());
+    out.textContent = result;
+  } catch (e) {
+    out.textContent = 'error: ' + e;
+  }
+  out.classList.remove('hidden');
+});
+
+w$('wizard-next').addEventListener('click', () => {
+  if (current < steps.length - 1) {
+    current += 1;
+    renderStep();
+  } else {
+    closeWizard(true);
+  }
+});
+
+w$('wizard-skip').addEventListener('click', () => closeWizard(false));
+
+// First run: open the wizard automatically once per database.
+wBackend.WizardSeen().then((seen) => {
+  if (!seen) startWizard();
+});

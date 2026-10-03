@@ -20,8 +20,10 @@ func runTUI(m *tuiModel) int {
 		SetScrollable(true)
 	output.SetBorder(true).SetTitle(" output ")
 
-	// Tab content builders. Each returns the primary view for a tab.
-	newList := func(fetch func() (view, error)) *tview.List {
+	// Tab content builders. Each returns the primary view for a tab
+	// plus its refill fn (lists must re-read on every entry so data
+	// stays current after actions).
+	newList := func(fetch func() (view, error)) (*tview.List, func()) {
 		l := tview.NewList().ShowSecondaryText(false)
 		fill := func() {
 			l.Clear()
@@ -36,7 +38,7 @@ func runTUI(m *tuiModel) int {
 			}
 		}
 		fill()
-		return l
+		return l, fill
 	}
 
 	// Forms are declared before the lists so button closures can
@@ -45,9 +47,9 @@ func runTUI(m *tuiModel) int {
 	var migrateForm *tview.Form
 	var simForm *tview.Form
 
-	queueList := newList(m.queueView)
-	bounceList := newList(m.bounceView)
-	dkimList := newList(m.dkimView)
+	queueList, refillQueue := newList(m.queueView)
+	bounceList, refillBounces := newList(m.bounceView)
+	dkimList, refillDKIMs := newList(m.dkimView)
 
 	// DKIM actions: generate a selector (prompt domain/selector/alg).
 	dkimForm = tview.NewForm().
@@ -65,6 +67,7 @@ func runTUI(m *tuiModel) int {
 				output.SetText("[green]Publish this TXT record:\n[white]" + rec +
 					"\n\nPrivate key saved next to the db file. Rotation: warmline dkim rotate --old " + selector + " --new " + selector + "b")
 			}
+			refillDKIMs()
 		})
 	dkimForm.SetBorder(true).SetTitle(" dkim generate ")
 
@@ -101,7 +104,6 @@ func runTUI(m *tuiModel) int {
 	// Donate footer — visible on every tab, per the donation rule.
 	donateFooter := tview.NewTextView().SetDynamicColors(true)
 	donateFooter.SetText("[gray]free forever · donate: ETH/USDC 0x85ee7E71f762d772599cbF1EC20E651B30657521 · BTC bc1qxe2zx5tv3hdreaej6s2x4p7han85uey828rrhg[-]")
-
 	pages := tview.NewPages()
 	pages.AddPage("queue", queueList, true, true)
 	pages.AddPage("bounces", bounceList, true, false)
@@ -117,30 +119,38 @@ func runTUI(m *tuiModel) int {
 	pages.AddPage("donate", tview.NewTextView().SetText(m.donate()), true, false)
 
 	// Left nav: sections switch pages; every section's list refills on
-	// entry so data stays current.
+	// entry so data stays current. The wizard is the last entry.
 	nav := tview.NewList().ShowSecondaryText(false)
 	sections := []struct {
 		name   string
 		page   string
 		refill func()
 	}{
-		{"queue", "queue", func() {}},
-		{"bounces", "bounces", func() {}},
-		{"dkim", "dkim", func() {}},
+		{"queue", "queue", refillQueue},
+		{"bounces", "bounces", refillBounces},
+		{"dkim", "dkim", refillDKIMs},
 		{"migrate", "migrate", func() {}},
 		{"simulate", "simulate", func() {}},
 		{"donate", "donate", func() {}},
 	}
+
+	// The wizard overlays the whole UI; finishing restores the main root.
+	root := tview.NewFlex().
+		AddItem(nav, 14, 0, true).
+		AddItem(pages, 0, 1, false)
+
+	openWizard := func() {
+		wiz := newTUIWizard(app, m, func() { app.SetRoot(root, true).EnableMouse(true) })
+		app.SetRoot(wiz.pages, true)
+	}
+	nav.AddItem("wizard", "", 0, openWizard)
 	for _, sec := range sections {
 		sec := sec
 		nav.AddItem(sec.name, "", 0, func() {
 			pages.SwitchToPage(sec.page)
+			sec.refill()
 		})
 	}
-
-	root := tview.NewFlex().
-		AddItem(nav, 14, 0, true).
-		AddItem(pages, 0, 1, false)
 
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyRune {
@@ -148,10 +158,24 @@ func runTUI(m *tuiModel) int {
 			case 'q', 'Q':
 				app.Stop()
 				return nil
+			case 'w', 'W':
+				openWizard()
+				return nil
 			}
 		}
 		return event
 	})
+
+	// First run on a fresh db: open the wizard automatically (the same
+	// behavior the desktop GUI has).
+	if !m.wizardSeen() {
+		go func() {
+			app.QueueUpdateDraw(func() {
+				wiz := newTUIWizard(app, m, func() { app.SetRoot(root, true).EnableMouse(true) })
+				app.SetRoot(wiz.pages, true)
+			})
+		}()
+	}
 
 	if err := app.SetRoot(root, true).EnableMouse(true).Run(); err != nil {
 		return 1

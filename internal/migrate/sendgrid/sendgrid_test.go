@@ -94,3 +94,18 @@ func TestBuildReport(t *testing.T) {
 // Compile-time contract: the sendgrid report must satisfy the shared
 // report interface so the CLI can treat sources uniformly.
 var _ = migrate.Report{} // report value type; constructors return migrate.Report
+
+// ParseBytes: the wizard and GUI parse embedded fixture bytes, not
+// files — the desktop binary runs outside any source checkout.
+func TestParseBytes(t *testing.T) {
+	e, err := ParseBytes([]byte(`{"export_version":"1"}`))
+	if err != nil {
+		t.Fatalf("ParseBytes: %v", err)
+	}
+	if e.ExportVersion != "1" {
+		t.Errorf("version = %q", e.ExportVersion)
+	}
+	if _, err := ParseBytes([]byte("{")); err == nil {
+		t.Error("malformed JSON must error")
+	}
+}

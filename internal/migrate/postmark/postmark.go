@@ -75,9 +75,19 @@ func ParseFile(path string) (*Export, error) {
 	if err != nil {
 		return nil, fmt.Errorf("read %s: %w", path, err)
 	}
+	e, err := ParseBytes(raw)
+	if err != nil {
+		return nil, fmt.Errorf("parse %s: %w", path, err)
+	}
+	return e, nil
+}
+
+// ParseBytes parses a Postmark export from raw JSON bytes (embedded
+// fixtures, GUI-loaded files).
+func ParseBytes(raw []byte) (*Export, error) {
 	var e Export
 	if err := json.Unmarshal(raw, &e); err != nil {
-		return nil, fmt.Errorf("parse %s: %w", path, err)
+		return nil, err
 	}
 	return &e, nil
 }

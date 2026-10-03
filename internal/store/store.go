@@ -75,6 +75,11 @@ CREATE TABLE IF NOT EXISTS dkims (
   created_at  TEXT NOT NULL,
   UNIQUE(domain, selector)
 );
+
+CREATE TABLE IF NOT EXISTS settings (
+  key   TEXT PRIMARY KEY,
+  value TEXT NOT NULL DEFAULT ''
+);
 `
 
 // Open opens (creating if needed) the SQLite queue database at path and

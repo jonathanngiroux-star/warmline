@@ -39,8 +39,11 @@ func TestDesktopCommandDefaultBuild(t *testing.T) {
 		t.Error("desktop in default build should not exit 0")
 	}
 	combined := out.String() + errB.String()
-	if !strings.Contains(combined, "-tags fyne") {
-		t.Errorf("desktop stub must teach the fyne build: %q", combined)
+	// The stub must teach a build command that actually works — a bare
+	// `-tags wails` build fails at runtime with Wails' stub error
+	// (needs `production`; `webkit2_41` on Linux for webkit2gtk-4.1).
+	if !strings.Contains(combined, "-tags \"wails production") {
+		t.Errorf("desktop stub must teach the wails production build: %q", combined)
 	}
 }
 

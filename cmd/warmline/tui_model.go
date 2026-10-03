@@ -2,7 +2,7 @@ package main
 
 // tui_model.go: the shared logic layer under both the TUI and the GUI.
 // Every mutation and read goes through tuiModel — fully testable without
-// a TTY or display; the renderers (tui.go, desktop_fyne.go) are thin.
+// a TTY or display; the renderers (tui.go, desktop_wails.go) are thin.
 
 import (
 	"bytes"

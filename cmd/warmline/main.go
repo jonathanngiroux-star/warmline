@@ -66,7 +66,7 @@ func usage(w io.Writer) {
 commands:
   (none)    open the TUI (interactive terminal)
   tui       open the TUI (interactive terminal)
-  desktop   open the desktop GUI (desktop build: -tags fyne)
+  desktop   open the desktop GUI (desktop build: -tags wails)
   version   print version
   donate    print donation addresses
   migrate   dry-run a migration from an ESP (sendgrid, postmark)

@@ -2,7 +2,7 @@ package main
 
 // launcher.go: what bare `warmline`, `warmline tui`, and `warmline
 // desktop` do. Bare invocation in a terminal opens the TUI (the
-// operator's front door); `desktop` opens the Fyne GUI in desktop
+// operator's front door); `desktop` opens the Wails GUI in desktop
 // builds and explains itself in default (cgo-free) builds. Non-TTY
 // contexts never hang — they print and exit.
 

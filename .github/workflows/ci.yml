@@ -74,21 +74,27 @@ jobs:
             -d '[{"event":"delivered","email":"u@example.net","sg_event_id":"E","sg_message_id":"M","timestamp":1759305600}]' | grep -q '"accepted":1'
           kill $SRV
           rm -f /tmp/ci.db*
+      # The wizard's serve-step probe is the real-stack proof; pin it in
+      # CI so the wizard can never silently break.
+      - name: wizard serve-probe gate
+        run: go test ./cmd/warmline/ -run TestInteractiveServeStepProbesRealStack -count=1
       # The docker image must build (the documented deploy path).
       - name: docker build
         run: docker build -t warmline-ci .
-      # The fyne-tagged desktop GUI must compile (cgo + GL on the
-      # runner). The default cgo-free build is covered by the steps
-      # above; without this step the tagged source rots silently.
-      - name: install desktop build deps (X11/GL/Wayland dev headers)
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libgl1-mesa-dev xorg-dev libwayland-dev libxkbcommon-dev
-      - name: desktop build compiles (fyne tag)
-        run: CGO_ENABLED=1 go build -tags fyne -o /tmp/warmline-desktop ./cmd/warmline
+      # The wails-tagged desktop GUI must compile (cgo + webkit on the
+      # runner). The default cgo-free build is covered above; without
+      # this step the tagged source rots silently.
+      # production = Wails' mandatory runtime tag; webkit2_41 = the
+      # webkit2gtk-4.1 API (Ubuntu 24.04 ships 4.1; 4.0 is EOL).
+      - name: install desktop build deps (webkit2gtk-4.1)
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libgtk-3-dev libwebkit2gtk-4.1-dev
+      - name: desktop build compiles (wails tag)
+        run: CGO_ENABLED=1 go build -tags "wails production webkit2_41" -o /tmp/warmline-desktop ./cmd/warmline
 
-  # The Windows desktop GUI must cross-compile on every push — the
-  # -H windowsgui ldflag keeps the PE in the GUI subsystem (no console
-  # window behind the app). Without this job the Windows build rots
-  # between releases. The released asset is built the same way.
+  # The Windows desktop GUI cross-compiles cgo-free (WebView2 via
+  # syscalls — no mingw, no cgo). -H windowsgui keeps the PE in the
+  # GUI subsystem (no console window behind the app). The released
+  # asset is built the same way.
   desktop-windows:
     runs-on: ubuntu-latest
     steps:
@@ -96,10 +102,8 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version: "1.27"
-      - name: install mingw-w64 (windows cross-compiler)
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends gcc-mingw-w64-x86-64
-      - name: desktop GUI cross-compiles for windows (fyne + windowsgui)
-        run: CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 go build -tags fyne -trimpath -ldflags "-s -w -H windowsgui" -o warmline-desktop-windows-amd64.exe ./cmd/warmline
+      - name: desktop GUI cross-compiles for windows (wails + windowsgui, cgo-free)
+        run: CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -tags "wails production" -trimpath -ldflags "-s -w -H windowsgui" -o warmline-desktop-windows-amd64.exe ./cmd/warmline
       - name: PE subsystem is WINDOWS_GUI (no console window)
         run: |
           SUB=$(python3 -c "

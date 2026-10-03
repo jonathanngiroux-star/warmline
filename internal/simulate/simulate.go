@@ -55,9 +55,19 @@ func LoadPlan(path string) (*Plan, error) {
 	if err != nil {
 		return nil, fmt.Errorf("read %s: %w", path, err)
 	}
+	p, err := LoadPlanBytes(raw)
+	if err != nil {
+		return nil, fmt.Errorf("parse %s: %w", path, err)
+	}
+	return p, nil
+}
+
+// LoadPlanBytes parses a plan from raw JSON bytes (embedded fixtures,
+// GUI-loaded plans).
+func LoadPlanBytes(raw []byte) (*Plan, error) {
 	var p Plan
 	if err := json.Unmarshal(raw, &p); err != nil {
-		return nil, fmt.Errorf("parse %s: %w", path, err)
+		return nil, err
 	}
 	if err := p.Validate(); err != nil {
 		return nil, err

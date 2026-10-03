@@ -196,3 +196,20 @@ func TestRunDoesNotMutatePlan(t *testing.T) {
 		t.Errorf("ramp 0 should hit target on day 1, got %d", r.Trajectory[0].Volume)
 	}
 }
+
+// LoadPlanBytes parses a plan from raw bytes (embedded fixtures, GUI).
+func TestLoadPlanBytes(t *testing.T) {
+	p, err := LoadPlanBytes([]byte(`{"volume_start":50,"volume_target":500,"ramp_days":5,"days":10,"bounce_rate":1,"complaint_rate":0.05,"ip_age":"new"}`))
+	if err != nil {
+		t.Fatalf("LoadPlanBytes: %v", err)
+	}
+	if p.Days != 10 {
+		t.Errorf("days = %d", p.Days)
+	}
+	if _, err := LoadPlanBytes([]byte("{")); err == nil {
+		t.Error("malformed plan must error")
+	}
+	if _, err := LoadPlanBytes([]byte(`{"volume_start":0,"volume_target":1,"ramp_days":1,"days":1,"ip_age":"new"}`)); err == nil {
+		t.Error("invalid plan values must error")
+	}
+}

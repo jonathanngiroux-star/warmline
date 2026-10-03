@@ -37,14 +37,16 @@ Binding brief: `IDEA.md`. This file is the enforcement summary. If a request fig
 
 - Go. SQLite default. MTA core: zoneMTA **or** Haraka behind a thin wrapper — one choice, documented in README, stuck to.
 - One binary + `docker run` + embedded UI. MIT core. **No BSL/ELv2 SKU exists in this project** — do not invent one. A multi-tenant demo host, if ever added, is a donation-funded courtesy preview, not a product.
+- Desktop GUI: **Wails v2** (maintainer decision, Oct 2026). Vanilla-JS frontend embedded via `go:embed`; adding npm dependencies, a bundler, or a framework to `frontend/dist` is out of scope. The Fyne renderer is removed; do not reintroduce a second GUI stack.
 - GOVERNANCE.md: DCO-only; donation addresses listed; 4/4 consensus + 30-day notice for license or wallet changes.
-- CI: GitHub Actions; fidelity gates on migrate dry-run; golden fixture → deterministic simulation JSON.
+- CI: GitHub Actions; fidelity gates on migrate dry-run; golden fixture → deterministic simulation JSON; wizard serve-probe gate; wails-tagged compile (Linux cgo + Windows cgo-free cross-compile).
 - Solo-maintainable surface area is a hard constraint. Every added file is a liability.
 
 ## Front doors
 
 - Bare `warmline` in a terminal opens the TUI (tview, pure Go, ships in every binary). `warmline tui` is the same thing.
-- `warmline desktop` opens the Fyne GUI in builds compiled with `-tags fyne` (cgo); the default cgo-free build prints build instructions. No Wails/web frontend — one logic layer (`tuiModel`), two thin renderers; a web frontend's npm supply chain is a liability this project does not carry.
+- `warmline desktop` opens the **Wails v2** GUI in builds compiled with `-tags "wails production"` (+ `webkit2_41` on Linux); the default cgo-free build prints build instructions. The frontend is vanilla JS embedded via `go:embed` — no npm tree, no bundler, no lockfile. One logic layer (`tuiModel`), three thin renderers (CLI, TUI, GUI).
+- **Setup wizard (binding requirement, both UIs):** every step carries the real input fields and runs the real operation on the user's values — migrate dry-run on the user's export, simulation on the user's numbers, DKIM on the user's domain, and a live SMTP probe of the user's chosen ports. Shared logic: `wizard.go` + `wizard_interactive.go`; renderers: `tui_wizard.go`, `frontend/dist/wizard.js`. Runs once per database; reopenable via nav/hotkey/button.
 
 ## Working rules
 

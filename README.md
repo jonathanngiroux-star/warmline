@@ -36,21 +36,24 @@ Not in v0.1 scope: Postmark/Mailgun webhook normalization, Mailgun migrate. (Out
 
 ```sh
 warmline            # TUI — the operator's terminal UI (every binary)
-warmline desktop    # desktop GUI (build with -tags fyne; see below)
+warmline desktop    # desktop GUI (build with -tags "wails production"; see below)
 ```
 
-The TUI and the GUI are thin renderers over one logic layer (`tuiModel`, fully tested) — queue, bounces, DKIM generation, migrate dry-runs, reputation simulation, and the donate page are the same operations in both. The GUI needs a one-time desktop build:
+Both the TUI and the GUI open with a **guided setup wizard** on first run (reopenable any time: `w` in the TUI, "Setup wizard" in the GUI sidebar). The wizard is a working guide, not a document: each step carries the real input fields and runs the real operation on your values — a migrate dry-run on your ESP export (or the bundled sample), a warmup simulation on your declared numbers, DKIM key generation for your domain, and a live SMTP probe that boots the actual queue on your chosen ports, submits a test message, and verifies it landed.
+
+The TUI and the GUI are thin renderers over one logic layer (`tuiModel`, fully tested) — queue, bounces, DKIM generation, migrate dry-runs, reputation simulation, and the donate page are the same operations in both. The GUI (Wails v2, vanilla-JS frontend embedded in the binary — no npm, no bundler) needs a one-time desktop build:
 
 ```sh
-go build -tags fyne -o warmline-desktop ./cmd/warmline
+# Linux: needs webkit2gtk-4.1 dev headers (Arch: webkit2gtk-4.1; Debian/Ubuntu 24.04+: libwebkit2gtk-4.1-dev)
+go build -tags "wails production webkit2_41" -o warmline-desktop ./cmd/warmline
 ./warmline-desktop desktop
 ```
 
-Windows (cross-compile from Linux/WSL, or download the release zip):
+Windows cross-compiles **cgo-free** (WebView2 via syscalls — no mingw toolchain needed):
 
 ```sh
-CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=windows GOARCH=amd64 \
-  go build -tags fyne -ldflags "-H windowsgui" -o warmline-desktop.exe ./cmd/warmline
+CGO_ENABLED=0 GOOS=windows GOARCH=amd64 \
+  go build -tags "wails production" -ldflags "-s -w -H windowsgui" -o warmline-desktop.exe ./cmd/warmline
 ```
 
 The default binary stays cgo-free (runs in Docker/scratch/CI); `warmline desktop` in that build prints instructions instead of crashing. Non-interactive contexts (pipes, CI) never hang — the TUI refuses with a hint.

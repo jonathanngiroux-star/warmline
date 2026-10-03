@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>warmline</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <nav id="sidebar">
+      <h1>warmline</h1>
+      <button class="nav-btn active" data-tab="queue">Queue</button>
+      <button class="nav-btn" data-tab="bounces">Bounces</button>
+      <button class="nav-btn" data-tab="dkim">DKIM</button>
+      <button class="nav-btn" data-tab="migrate">Migrate</button>
+      <button class="nav-btn" data-tab="simulate">Simulate</button>
+      <button class="nav-btn" data-tab="donate">Donate</button>
+      <button class="nav-btn" id="wizard-btn">Setup wizard</button>
+    </nav>
+
+    <main>
+      <section id="tab-queue" class="tab active">
+        <h2>Queue</h2>
+        <p id="queue-summary" class="summary"></p>
+        <ul id="queue-list" class="rows"></ul>
+      </section>
+
+      <section id="tab-bounces" class="tab">
+        <h2>Bounces</h2>
+        <p id="bounce-summary" class="summary"></p>
+        <ul id="bounce-list" class="rows"></ul>
+      </section>
+
+      <section id="tab-dkim" class="tab">
+        <h2>DKIM</h2>
+        <p id="dkim-summary" class="summary"></p>
+        <ul id="dkim-list" class="rows"></ul>
+        <form id="dkim-form">
+          <label>domain <input name="domain" value="example.com" /></label>
+          <label>selector <input name="selector" value="s2026" /></label>
+          <label>algorithm
+            <select name="algorithm">
+              <option value="rsa">rsa</option>
+              <option value="ed25519">ed25519</option>
+            </select>
+          </label>
+          <button type="submit">Generate DKIM key</button>
+        </form>
+        <pre id="dkim-result" class="output"></pre>
+      </section>
+
+      <section id="tab-migrate" class="tab">
+        <h2>Migrate dry-run</h2>
+        <form id="migrate-form">
+          <label>source
+            <select name="source">
+              <option value="sendgrid">sendgrid</option>
+              <option value="postmark">postmark</option>
+            </select>
+          </label>
+          <label>export path
+            <input name="input" id="migrate-input" placeholder="path to your ESP export JSON" />
+            <button type="button" id="migrate-browse">Browse</button>
+          </label>
+          <button type="submit">Dry-run</button>
+        </form>
+        <pre id="migrate-result" class="output"></pre>
+      </section>
+
+      <section id="tab-simulate" class="tab">
+        <h2>Reputation simulation</h2>
+        <form id="simulate-form">
+          <label>plan path
+            <input name="plan" id="simulate-input" placeholder="path to plan JSON" />
+            <button type="button" id="simulate-browse">Browse</button>
+          </label>
+          <button type="submit">Simulate</button>
+        </form>
+        <pre id="simulate-result" class="output"></pre>
+      </section>
+
+      <section id="tab-donate" class="tab">
+        <h2>Donate</h2>
+        <pre id="donate-text" class="output"></pre>
+      </section>
+
+      <footer id="footer">
+        free forever · donate: ETH/USDC 0x85ee7E71f762d772599cbF1EC20E651B30657521 · BTC bc1qxe2zx5tv3hdreaej6s2x4p7han85uey828rrhg
+      </footer>
+    </main>
+
+    <div id="wizard-modal" class="modal hidden">
+      <div class="modal-box">
+        <h2 id="wizard-title"></h2>
+        <p id="wizard-body"></p>
+        <div id="wizard-fields"></div>
+        <pre id="wizard-output" class="output hidden"></pre>
+        <div class="wizard-nav">
+          <button id="wizard-run" class="hidden"></button>
+          <span id="wizard-progress"></span>
+          <button id="wizard-next">Next</button>
+          <button id="wizard-skip" class="hidden">Skip tour</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="app.js"></script>
+  <script src="wizard.js"></script>
+</body>
+</html>

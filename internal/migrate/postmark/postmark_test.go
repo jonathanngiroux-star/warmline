@@ -90,3 +90,17 @@ func TestWebhookEventMapping(t *testing.T) {
 		t.Error("subscription_change must surface as a risk (no canonical event)")
 	}
 }
+
+// ParseBytes mirrors sendgrid.ParseBytes: embedded fixtures / GUI loads.
+func TestParseBytes(t *testing.T) {
+	e, err := ParseBytes([]byte(`{"export_version":"1"}`))
+	if err != nil {
+		t.Fatalf("ParseBytes: %v", err)
+	}
+	if e.ExportVersion != "1" {
+		t.Errorf("version = %q", e.ExportVersion)
+	}
+	if _, err := ParseBytes([]byte("{")); err == nil {
+		t.Error("malformed JSON must error")
+	}
+}
