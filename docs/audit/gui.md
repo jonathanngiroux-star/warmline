@@ -83,6 +83,18 @@ reopenable any time (GUI sidebar button; TUI `w` hotkey + nav entry).
    real per-list fill fns.
 8. **`wails.Run` error was swallowed** (silent exit 1). Fixed: printed
    to stderr — this is how bug 1 was diagnosable at all.
+9. **Skip was broken in both UIs (user report)** — the GUI's Skip
+   button shipped with `class="hidden"` (invisible), and in BOTH UIs
+   skipping did not persist `wizard_seen`, so the wizard auto-opened
+   again on every launch — effectively mandatory. Fixed: the Skip
+   button is visible on every GUI step; ANY dismissal (Skip, Finish,
+   Escape) marks the wizard seen in both UIs (GUI `closeWizard` →
+   `WizardDone`, TUI `finish()` → `wizardDone()`); reopening still
+   works (sidebar button / `w` hotkey). Pinned by
+   `wizard_skip_test.go`; live-verified over the dev-server websocket
+   IPC (fresh → skip → seen; steps still 6) and under a PTY (skip →
+   relaunch on the same db opens straight to the main TUI; `w`
+   reopens the tour).
 
 ## Verified live (GUI, browser-driven over websocket IPC)
 

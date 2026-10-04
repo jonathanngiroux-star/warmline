@@ -123,9 +123,10 @@ async function startWizard() {
 }
 
 function closeWizard(markDone) {
-  if (markDone) {
-    wBackend.WizardDone().catch(() => {});
-  }
+  // ANY dismissal — Skip, Finish, Escape — marks the wizard seen, so
+  // it never auto-opens again (a wizard that cannot be declined is
+  // mandatory). It stays reopenable via the sidebar button.
+  wBackend.WizardDone().catch(() => {});
   w$('wizard-modal').classList.add('hidden');
 }
 
@@ -153,6 +154,13 @@ w$('wizard-next').addEventListener('click', () => {
 });
 
 w$('wizard-skip').addEventListener('click', () => closeWizard(false));
+
+// Escape closes the wizard like Skip (never mandatory).
+document.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Escape' && !w$('wizard-modal').classList.contains('hidden')) {
+    closeWizard(false);
+  }
+});
 
 // First run: open the wizard automatically once per database.
 wBackend.WizardSeen().then((seen) => {

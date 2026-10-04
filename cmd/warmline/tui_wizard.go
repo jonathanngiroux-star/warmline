@@ -131,10 +131,12 @@ func (w *tuiWizard) run(i int) {
 	}
 }
 
-// finish closes the wizard; completing the tour marks it seen.
+// finish closes the wizard. ANY exit — finishing the tour, skipping
+// it, or canceling (Esc) — marks it seen: a wizard that cannot be
+// declined is mandatory, and this one must not be. wizard_seen only
+// gates the auto-open; the 'w' hotkey and the nav entry always
+// reopen it.
 func (w *tuiWizard) finish(completed bool) {
-	if completed {
-		_ = w.m.wizardDone()
-	}
+	_ = w.m.wizardDone()
 	w.onDone()
 }
