@@ -116,7 +116,31 @@ func runTUI(m *tuiModel) int {
 	pages.AddPage("simulate", tview.NewFlex().
 		AddItem(simForm, 0, 1, false).
 		AddItem(output, 0, 2, false), true, false)
-	pages.AddPage("donate", tview.NewTextView().SetText(m.donate()), true, false)
+	// Active page tracking: the nav sets it; the e/b copy hotkeys check
+	// it (focus alone is wrong — after clicking "donate" in the nav,
+	// focus stays on the nav list, and the hotkeys must still work).
+	activePage := "queue"
+	donateText := tview.NewTextView().SetText(m.donate()).SetDynamicColors(true)
+	donateStatus := tview.NewTextView().SetDynamicColors(true)
+	setDonateHint := func() {
+		donateStatus.SetText("[gray]e = copy ETH/USDC address · b = copy Bitcoin address · q = quit[-]")
+	}
+	setDonateHint()
+	donatePage := tview.NewFlex().
+		SetDirection(tview.FlexRow).
+		AddItem(donateText, 0, 1, false).
+		AddItem(donateStatus, 1, 0, false)
+	pages.AddPage("donate", donatePage, true, false)
+
+	// copyDonate writes the address to the clipboard and reports the
+	// result on the donate status line.
+	copyDonate := func(addr string) {
+		if err := copyAddress(addr); err != nil {
+			donateStatus.SetText("[red]" + err.Error())
+			return
+		}
+		donateStatus.SetText("[green]copied:[white] " + addr)
+	}
 
 	// Left nav: sections switch pages; every section's list refills on
 	// entry so data stays current. The wizard is the last entry.
@@ -148,6 +172,7 @@ func runTUI(m *tuiModel) int {
 		sec := sec
 		nav.AddItem(sec.name, "", 0, func() {
 			pages.SwitchToPage(sec.page)
+			activePage = sec.page
 			sec.refill()
 		})
 	}
@@ -161,6 +186,17 @@ func runTUI(m *tuiModel) int {
 			case 'w', 'W':
 				openWizard()
 				return nil
+			case 'e', 'E':
+				// only on the donate page
+				if activePage == "donate" {
+					copyDonate(donateEthereum)
+					return nil
+				}
+			case 'b', 'B':
+				if activePage == "donate" {
+					copyDonate(donateBitcoin)
+					return nil
+				}
 			}
 		}
 		return event

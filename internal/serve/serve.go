@@ -145,9 +145,36 @@ func donatePage() http.HandlerFunc {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		fmt.Fprintf(w, pageShell("Donate"), "")
 		fmt.Fprint(w, "<h1>Donate</h1><p>Warmline is free to self-host. If it saves you a SendGrid week, donate.</p>")
-		fmt.Fprintf(w, "<p>Ethereum / USDC (ERC-20): <code>%s</code></p>", DonateEthereum)
-		fmt.Fprintf(w, "<p>Bitcoin: <code>%s</code></p>", DonateBitcoin)
+		fmt.Fprintf(w, "<p>Ethereum / USDC (ERC-20): <code>%s</code> <button class=\"copy-btn\" data-copy=\"%s\">Copy</button></p>", DonateEthereum, DonateEthereum)
+		fmt.Fprintf(w, "<p>Bitcoin: <code>%s</code> <button class=\"copy-btn\" data-copy=\"%s\">Copy</button></p>", DonateBitcoin, DonateBitcoin)
 		fmt.Fprint(w, "<p>No feature is gated on donations.</p>")
+		fmt.Fprint(w, `<script>
+function copyAddress(btn) {
+  var addr = btn.getAttribute('data-copy');
+  var done = function () {
+    var old = btn.textContent;
+    btn.textContent = 'Copied!';
+    setTimeout(function () { btn.textContent = old; }, 1500);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(addr).then(done).catch(function () { fallbackCopy(addr, done); });
+  } else {
+    fallbackCopy(addr, done);
+  }
+}
+function fallbackCopy(addr, done) {
+  var ta = document.createElement('textarea');
+  ta.value = addr;
+  ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); done(); } catch (e) {}
+  document.body.removeChild(ta);
+}
+document.querySelectorAll('.copy-btn').forEach(function (b) {
+  b.addEventListener('click', function () { copyAddress(b); });
+});
+</script>`)
 		fmt.Fprint(w, footer())
 	}
 }

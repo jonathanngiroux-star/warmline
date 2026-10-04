@@ -145,9 +145,52 @@ $('simulate-browse').addEventListener('click', async () => {
 // ---- donate ----
 async function renderDonate() {
   try {
-    $('donate-text').textContent = await backend.Donate();
+    const text = await backend.Donate();
+    $('donate-text').textContent = text;
+    renderDonateCopyButtons(text);
   } catch (e) {
     showError($('donate-text'), e);
+  }
+}
+
+// Copy buttons for the donate addresses, parsed out of the Donate()
+// text so the addresses have one source of truth (the Go constants).
+function renderDonateCopyButtons(text) {
+  const holder = $('donate-buttons');
+  holder.innerHTML = '';
+  const addrs = text.match(/(0x[a-fA-F0-9]{40}|bc1[a-z0-9]{20,})/g) || [];
+  for (const addr of addrs) {
+    const isEth = addr.startsWith('0x');
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'copy-btn';
+    btn.textContent = (isEth ? 'Copy ETH / USDC address' : 'Copy Bitcoin address') + '  (' + addr.slice(0, 8) + '…)';
+    btn.addEventListener('click', () => copyAddressToClipboard(btn, addr));
+    holder.appendChild(btn);
+  }
+}
+
+// copyAddressToClipboard: backend binding first (native clipboard),
+// then navigator.clipboard (HTTPS/browser), then a select hint.
+async function copyAddressToClipboard(btn, addr) {
+  const status = $('donate-copy-status') || $('wizard-output');
+  const setStatus = (msg, ok) => {
+    if (!status) return;
+    status.textContent = msg;
+    status.classList.remove('hidden');
+    status.classList.toggle('copy-failed', !ok);
+  };
+  try {
+    await backend.CopyAddress(addr);
+    setStatus('Copied: ' + addr, true);
+  } catch (e) {
+    // fallback: web clipboard API
+    try {
+      await navigator.clipboard.writeText(addr);
+      setStatus('Copied: ' + addr, true);
+    } catch (e2) {
+      setStatus('Copy failed — select the address manually:\n' + addr, false);
+    }
   }
 }
 

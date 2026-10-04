@@ -148,6 +148,16 @@ func (a *DesktopApp) WizardDone() error { return a.m.wizardDone() }
 // Version returns the binary version string.
 func (a *DesktopApp) Version() string { return version }
 
+// CopyAddress copies text to the system clipboard (the donate copy
+// buttons). Uses Wails' clipboard runtime; if it fails the frontend
+// falls back to navigator.clipboard / a manual-select hint.
+func (a *DesktopApp) CopyAddress(text string) (string, error) {
+	if err := wruntime.ClipboardSetText(a.ctx, text); err != nil {
+		return "", err
+	}
+	return "copied", nil
+}
+
 // PickExportPath opens a native file dialog for the ESP export JSON.
 func (a *DesktopApp) PickExportPath() (string, error) {
 	return wruntime.OpenFileDialog(a.ctx, wruntime.OpenDialogOptions{

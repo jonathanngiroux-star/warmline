@@ -63,6 +63,39 @@ function renderStep() {
   out.classList.add('hidden');
   out.textContent = '';
 
+  // Copy buttons on the donate step (the wizard's donate body carries
+  // the same addresses; render Copy buttons below the body).
+  const prevCopy = w$('wizard-fields').querySelector('.copy-row');
+  if (prevCopy) prevCopy.remove();
+  if (s.id === 'donate') {
+    const row = document.createElement('div');
+    row.className = 'copy-row';
+    const addrs = (s.body.match(/(0x[a-fA-F0-9]{40}|bc1[a-z0-9]{20,})/g)) || [];
+    for (const addr of addrs) {
+      const isEth = addr.startsWith('0x');
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'copy-btn';
+      btn.textContent = isEth ? 'Copy ETH / USDC address' : 'Copy Bitcoin address';
+      btn.addEventListener('click', async () => {
+        try {
+          await wBackend.CopyAddress(addr);
+          out.textContent = 'Copied: ' + addr;
+        } catch (e) {
+          try {
+            await navigator.clipboard.writeText(addr);
+            out.textContent = 'Copied: ' + addr;
+          } catch (e2) {
+            out.textContent = 'Copy failed — copy manually:\n' + addr;
+          }
+        }
+        out.classList.remove('hidden');
+      });
+      row.appendChild(btn);
+    }
+    w$('wizard-fields').appendChild(row);
+  }
+
   // run button
   const run = w$('wizard-run');
   if (s.fields && s.fields.length > 0) {
