@@ -4,7 +4,6 @@
 package serve
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -116,8 +115,6 @@ func Run(db *store.Store, opts Options) error {
 }
 
 // DB exposes the underlying *sql.DB (used by Stats).
-func dbHandle(db *store.Store) *sql.DB { return db.DB() }
-
 func queuePage(db *store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {

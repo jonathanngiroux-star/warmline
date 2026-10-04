@@ -2,6 +2,7 @@ package relay
 
 import (
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/jonathanngiroux-star/warmline/internal/mta"
@@ -173,5 +174,40 @@ func TestDeliverFromHeaderLFOnly(t *testing.T) {
 	inbox := fake.Inbox()
 	if len(inbox) != 1 || inbox[0].From != "app@example.com" {
 		t.Errorf("LF-only body: from = %v", inbox)
+	}
+}
+
+// splitHostPort: 0% coverage but a live caller (deliver). IPv6-safe:
+// splits on the LAST colon; rejects malformed forms by naming them.
+func TestSplitHostPort(t *testing.T) {
+	cases := []struct {
+		in         string
+		host, port string
+		wantErr    bool
+	}{
+		{"smtp.example.com:587", "smtp.example.com", "587", false},
+		{"127.0.0.1:2525", "127.0.0.1", "2525", false},
+		{"[::1]:587", "[::1]", "587", false},
+		{"smtp.example.com", "", "", true},  // no port
+		{":587", "", "", true},              // no host
+		{"smtp.example.com:", "", "", true}, // empty port
+	}
+	for _, c := range cases {
+		host, port, err := splitHostPort(c.in)
+		if c.wantErr {
+			if err == nil {
+				t.Errorf("splitHostPort(%q): want error, got %q %q", c.in, host, port)
+			} else if !strings.Contains(err.Error(), c.in) {
+				t.Errorf("error must name the offending addr: %v", err)
+			}
+			continue
+		}
+		if err != nil {
+			t.Errorf("splitHostPort(%q): %v", c.in, err)
+			continue
+		}
+		if host != c.host || port != c.port {
+			t.Errorf("splitHostPort(%q) = %q,%q; want %q,%q", c.in, host, port, c.host, c.port)
+		}
 	}
 }

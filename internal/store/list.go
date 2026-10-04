@@ -24,7 +24,7 @@ func (s *Store) ListMessages(limit int) ([]MessageRow, error) {
 		return nil, err
 	}
 	defer rows.Close()
-	var out []MessageRow
+	out := []MessageRow{}
 	for rows.Next() {
 		var r MessageRow
 		if err := rows.Scan(&r.ID, &r.Recipient, &r.Status, &r.Relay, &r.CreatedAt); err != nil {
@@ -58,7 +58,7 @@ func (s *Store) ListBounces(limit int) ([]BounceRow, error) {
 		return nil, err
 	}
 	defer rows.Close()
-	var out []BounceRow
+	out := []BounceRow{}
 	for rows.Next() {
 		var r BounceRow
 		if err := rows.Scan(&r.ID, &r.MessageID, &r.Recipient, &r.SMTPCode, &r.Diagnostic, &r.Class, &r.At); err != nil {
@@ -89,7 +89,7 @@ func (s *Store) ListComplaints(limit int) ([]ComplaintRow, error) {
 		return nil, err
 	}
 	defer rows.Close()
-	var out []ComplaintRow
+	out := []ComplaintRow{}
 	for rows.Next() {
 		var r ComplaintRow
 		if err := rows.Scan(&r.ID, &r.MessageID, &r.Recipient, &r.At); err != nil {
@@ -118,7 +118,7 @@ func (s *Store) ListDKIMs() ([]DKIMRow, error) {
 		return nil, err
 	}
 	defer rows.Close()
-	var out []DKIMRow
+	out := []DKIMRow{}
 	for rows.Next() {
 		var r DKIMRow
 		if err := rows.Scan(&r.ID, &r.Domain, &r.Selector, &r.PublicKey, &r.CreatedAt); err != nil {

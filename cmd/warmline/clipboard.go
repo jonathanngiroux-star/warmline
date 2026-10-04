@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"runtime"
 	"strings"
 )
 
@@ -67,12 +66,4 @@ func copyToClipboardTools(text string) error {
 		return nil
 	}
 	return fmt.Errorf("no clipboard tool available — install wl-copy (Wayland) or xclip (X11), or copy the address manually")
-}
-
-// clipboardHint returns the human instruction when copy is unavailable.
-func clipboardHint() string {
-	if runtime.GOOS == "windows" {
-		return "select the address and press Ctrl+C"
-	}
-	return "install wl-copy (Wayland) or xclip (X11) to enable one-key copy"
 }

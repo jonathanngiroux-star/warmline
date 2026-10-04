@@ -192,8 +192,11 @@ func runDesktop(m *tuiModel) int {
 		AssetServer: &assetserver.Options{
 			Assets: desktopAssets,
 		},
-		OnStartup: func(ctx context.Context) { app.ctx = ctx },
-		Bind:      []interface{}{app},
+		OnStartup: func(ctx context.Context) {
+			app.ctx = ctx
+			app.startTestBridge()
+		},
+		Bind: []interface{}{app},
 	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "desktop: %v\n", err)

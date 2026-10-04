@@ -138,6 +138,49 @@ reopenable any time (GUI sidebar button; TUI `w` hotkey + nav entry).
 - CI: fyne jobs replaced by wails jobs (Linux apt webkit2gtk-4.1;
   Windows pure cross-compile, no mingw); wizard serve-probe gate added
 
+## GUI + TUI full test suites (Oct 4, second audit pass)
+
+Per request: copy buttons re-verified, full backend audit, and a real
+GUI test suite driven through the live UI — mock data (the embedded
+sample export + typed plan numbers + mock domains), zero hand-waving.
+
+### Backend (coverage-driven audit)
+
+- Coverage before: cmd 45.6%, serve 56.7%, relay 65.3%, store 70.8%
+- **4 real bugs fixed — empty list methods returned nil → JSON `null`**
+  (`ListMessages`, `ListBounces`, `ListComplaints`, `ListDKIMs`); JS
+  clients crash on `.length` of null. All now return `[]`; pinned by
+  `empty_lists_test.go` (marshals bytes as `[]`).
+- Dead code removed: `serve.dbHandle`, `cmd.clipboardHint` (no callers).
+- New coverage: `relay.splitHostPort` (IPv6 last-colon semantics, error
+  names the addr), `serve.Submit` (per-recipient enqueue), `serve.Run`
+  (live ephemeral-port bind + real SMTP dialogue in-process — the
+  probe sockets are released before Run binds; retry-on-bind-race).
+
+### GUI (in-app test bridge — the only way to drive a Wayland webview)
+
+`testbridge.go` + `frontend/dist/testbridge.js` + `gui_driver.py` +
+`gui_suite_full.py` (ported from the Proofspan reference; env prefix
+`WARMLINE_GUI_*`). The bridge arms ONLY on `WARMLINE_GUI_TESTBRIDGE=1`
+— production launches never poll. Interpreter is a fixed switch (no
+eval).
+
+**36/36 checks passed** against the real running app: wizard auto-open,
+6-step walk with real operations (sample-export dry-run, typed-numbers
+simulation, ed25519 DKIM on a mock domain, live SMTP probe), skip
+visible + working + persisted, all tabs, error paths naming the
+offending path, donate addresses byte-for-byte, empty states — each UI
+claim cross-verified against the SQLite db and the REAL system
+clipboard (Klipper).
+
+### Dark-mode fix (user report: white dropdowns)
+
+Native `<select>` popups ignored the dark theme. Root cause: the page
+never declared `color-scheme`, so WebKitGTK rendered native form
+controls light. Fixed: `color-scheme: dark` on `:root` + explicit dark
+`option` rows. Pinned in the suite: computed color-scheme must be dark,
+option rows must compute `rgb(30, 34, 41)`.
+
 ## Known non-bugs (tview/browser behavior, documented)
 
 - Enter on a focused dropdown opens the option list (tview default).
